@@ -1,4 +1,4 @@
-package com.example.codefather.common;
+package com.example.codefather.model.dto;
 
 import lombok.Data;
 
@@ -6,7 +6,7 @@ import lombok.Data;
  * 分页请求封装类
  */
 @Data
-public class PageRequest {
+public class PageDTO {
 
     /**
      * 当前页号

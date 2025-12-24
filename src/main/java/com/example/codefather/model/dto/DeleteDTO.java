@@ -1,11 +1,11 @@
-package com.example.codefather.common;
+package com.example.codefather.model.dto;
 
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
-public class DeleteRequest implements Serializable {
+public class DeleteDTO implements Serializable {
 
     /**
      * id
