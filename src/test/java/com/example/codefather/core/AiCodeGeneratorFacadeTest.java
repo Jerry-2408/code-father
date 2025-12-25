@@ -20,13 +20,13 @@ class AiCodeGeneratorFacadeTest {
 
     @Test
     void generateAndSaveCode() {
-        File file = aiCodeGeneratorFacade.generateAndSaveCode("做一个程序员黄伟乐的博客，代码不超过50行", CodeGenTypeEnum.MULTI_FILE);
+        File file = aiCodeGeneratorFacade.generateAndSaveCode("做一个程序员黄伟乐的博客，代码不超过50行", CodeGenTypeEnum.MULTI_FILE, 1L);
         Assertions.assertNotNull(file);
     }
 
     @Test
     void generateAndSaveCodeStream() {
-        Flux<String> chatResult = aiCodeGeneratorFacade.generateAndSaveCodeStream("做一个博客登录页面，代码不超过50行", CodeGenTypeEnum.MULTI_FILE);
+        Flux<String> chatResult = aiCodeGeneratorFacade.generateAndSaveCodeStream("做一个博客登录页面，代码不超过50行", CodeGenTypeEnum.MULTI_FILE, 1L);
         List<String> resultList = chatResult.collectList().block();
         Assertions.assertNotNull(resultList);
         String completeContent = String.join("", resultList);

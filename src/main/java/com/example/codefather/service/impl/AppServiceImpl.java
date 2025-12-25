@@ -2,10 +2,14 @@ package com.example.codefather.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.StrUtil;
+import com.example.codefather.core.AiCodeGeneratorFacade;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
+import com.example.codefather.exception.ThrowUtils;
 import com.example.codefather.model.dto.app.AppQueryDTO;
 import com.example.codefather.model.entity.User;
+import com.example.codefather.model.enums.CodeGenTypeEnum;
 import com.example.codefather.model.vo.app.AppVO;
 import com.example.codefather.model.vo.user.UserVO;
 import com.example.codefather.service.UserService;
@@ -16,6 +20,7 @@ import com.example.codefather.mapper.AppMapper;
 import com.example.codefather.service.AppService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +39,28 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private UserService userService;
+
+    @Resource
+    private AiCodeGeneratorFacade aiCodeGeneratorFacade;
+
+    @Override
+    public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
+        // 1. 参数校验
+        ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
+        // 2. 查询应用信息
+        App app = this.getById(appId);
+        ThrowUtils.throwIf(app == null, ErrorCode.NOT_FOUND_ERROR, "应用不存在");
+        // 3. 用户校验
+        if (!loginUser.getId().equals(app.getUserId())) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
+        }
+        // 4. 获取应用的代码生成类型
+        String codeGenTypeStr = app.getCodeGenType();
+        CodeGenTypeEnum codeGenType = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
+        // 5. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
+        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
+    }
 
     @Override
     public AppVO getAppVO(App app) {
