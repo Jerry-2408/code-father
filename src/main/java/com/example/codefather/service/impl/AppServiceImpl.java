@@ -12,9 +12,11 @@ import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.exception.ThrowUtils;
 import com.example.codefather.model.dto.app.AppQueryDTO;
 import com.example.codefather.model.entity.User;
+import com.example.codefather.model.enums.ChatHistoryMessageTypeEnum;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
 import com.example.codefather.model.vo.app.AppVO;
 import com.example.codefather.model.vo.user.UserVO;
+import com.example.codefather.service.ChatHistoryService;
 import com.example.codefather.service.UserService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -23,9 +25,11 @@ import com.example.codefather.mapper.AppMapper;
 import com.example.codefather.service.AppService;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 
 import java.io.File;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +52,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     @Resource
     private AiCodeGeneratorFacade aiCodeGeneratorFacade;
 
+    @Resource
+    private ChatHistoryService chatHistoryService;
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -60,11 +67,37 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         if (!loginUser.getId().equals(app.getUserId())) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限访问该应用");
         }
-        // 4. 获取应用的代码生成类型
+        // 4. 获取应用的代码生成类型并校验
         String codeGenTypeStr = app.getCodeGenType();
         CodeGenTypeEnum codeGenType = CodeGenTypeEnum.getEnumByValue(codeGenTypeStr);
-        // 5. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
-        return aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
+        ThrowUtils.throwIf(codeGenType == null, ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
+        // 5. 添加用户消息到对话历史
+        chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+        // 6. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
+        Flux<String> chatStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
+        // 7. 添加 AI 消息到对话历史
+        StringBuilder resultBuilder = new StringBuilder();
+        return chatStream
+                // map要返回流式结果，doOnNext不用返回流式结果
+                .map(chunk -> {
+                    // 收集AI响应内容
+                    resultBuilder.append(chunk);
+                    return chunk;
+                })
+                .doOnComplete(() -> {
+                    // 流式处理完成，保存AI消息到对话历史
+                    String completeResult = resultBuilder.toString();
+                    if (StrUtil.isNotBlank(completeResult)) {
+                        chatHistoryService.addChatMessage(appId, completeResult, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    }
+                })
+                .doOnError(error -> {
+                    // 流式处理出错，保存出错消息到对话历史
+                    String errorMessage = "AI回复失败" + error.getMessage();
+                    if (StrUtil.isNotBlank(errorMessage)) {
+                        chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                    }
+                });
     }
 
     @Override
@@ -110,6 +143,25 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         boolean updateResult = this.updateById(updateApp);
         // 9. 返回部署的URL（域名/deployKey）
         return String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
+    }
+
+    /**
+     * 删除应用时关联删除对话历史
+     * @param id
+     * @return
+     */
+    @Override
+    @Transactional
+    public boolean removeById(Serializable id) {
+        if (id == null) {
+            return false;
+        }
+        Long appId = Long.valueOf(id.toString());
+        if (appId <= 0) {
+            return false;
+        }
+        chatHistoryService.deleteByAppId(appId);
+        return super.removeById(id);
     }
 
     @Override
