@@ -25,5 +25,7 @@ class AiCodeGeneratorServiceTest {
     void generateMultiFileCode() {
         MultiFileCodeResult result = aiCodeGeneratorService.generateMultiFileCode("做一个程序员黄伟乐的留言板，代码不超过50行");
         Assertions.assertNotNull(result);
+        result = aiCodeGeneratorService.generateMultiFileCode("你刚刚做了什么");
+        Assertions.assertNotNull(result);
     }
 }

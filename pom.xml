@@ -98,6 +98,17 @@
             <artifactId>langchain4j-reactor</artifactId>
             <version>1.1.0-beta7</version>
         </dependency>
+        <!-- langchain4j redis持久化-->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-community-redis-spring-boot-starter</artifactId>
+            <version>1.1.0-beta7</version>
+        </dependency>
+        <!-- Caffeine本地缓存，加强版的map-->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
 
     </dependencies>
 
