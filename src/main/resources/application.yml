@@ -16,11 +16,18 @@ spring:
       port: 6379
       password:
       ttl: 3600
-
+  # spring-session
+  session:
+    store-type: redis
+    timeout: 2592000
 server:
   port: 8123
   servlet:
     context-path: /api
+    # servlet-session
+    session:
+      cookie:
+        max-age: 2592000
 
 # springdoc-openapi
 springdoc:
