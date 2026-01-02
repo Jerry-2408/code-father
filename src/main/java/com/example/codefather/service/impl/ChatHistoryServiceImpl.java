@@ -84,6 +84,7 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
         ThrowUtils.throwIf(userId == null || userId <= 0, ErrorCode.PARAMS_ERROR, "用户 ID 不能为空");
         ChatHistoryMessageTypeEnum messageTypeEnum = ChatHistoryMessageTypeEnum.getEnumByValue(messageType);
         ThrowUtils.throwIf(messageTypeEnum == null, ErrorCode.PARAMS_ERROR, "消息类型错误");
+        // Todo 消息太长的话，分段保存（Vue项目代码生成内容很长，导致SQL保存不了太多）
         // 保存消息记录
         ChatHistory chatHistory = ChatHistory.builder()
                 .appId(appId)
