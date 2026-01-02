@@ -4,6 +4,7 @@ import com.example.codefather.ai.model.HtmlCodeResult;
 import com.example.codefather.ai.model.MultiFileCodeResult;
 import dev.langchain4j.service.MemoryId;
 import dev.langchain4j.service.SystemMessage;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import reactor.core.publisher.Flux;
 
@@ -50,8 +51,8 @@ public interface AiCodeGeneratorService {
      *
      * @param appId 应用Id
      * @param userMessage 用户消息
-     * @return 流式结果
+     * @return 流式结果（TokenStream）
      */
     @SystemMessage(fromResource = "prompt/code-gen-vue-project-system-prompt.txt")
-    Flux<String> generateVueProjectCodeStream(@MemoryId Long appId, @UserMessage String userMessage);
+    TokenStream generateVueProjectCodeStream(@MemoryId Long appId, @UserMessage String userMessage);
 }

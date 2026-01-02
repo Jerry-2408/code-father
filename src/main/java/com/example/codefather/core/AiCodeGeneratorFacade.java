@@ -1,7 +1,11 @@
 package com.example.codefather.core;
 
+import cn.hutool.json.JSONUtil;
 import com.example.codefather.ai.AiCodeGeneratorService;
 import com.example.codefather.ai.AiCodeGeneratorServiceFactory;
+import com.example.codefather.ai.message.AiResponseMessage;
+import com.example.codefather.ai.message.ToolExecutedMessage;
+import com.example.codefather.ai.message.ToolRequestMessage;
 import com.example.codefather.ai.model.HtmlCodeResult;
 import com.example.codefather.ai.model.MultiFileCodeResult;
 import com.example.codefather.core.parser.CodeParserExecutor;
@@ -9,6 +13,9 @@ import com.example.codefather.core.saver.CodeFileSaverExecutor;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.TokenStream;
+import dev.langchain4j.service.tool.ToolExecution;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -75,16 +82,16 @@ public class AiCodeGeneratorFacade {
         AiCodeGeneratorService aiCodeGeneratorService = aiCodeGeneratorServiceFactory.getAiCodeGeneratorService(appId, codeGenTypeEnum);
         return switch (codeGenTypeEnum) {
             case HTML -> {
-                Flux<String> chatResult = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
-                yield processCodeStream(chatResult, codeGenTypeEnum, appId);
+                Flux<String> codeStream = aiCodeGeneratorService.generateHtmlCodeStream(userMessage);
+                yield processCodeStream(codeStream, codeGenTypeEnum, appId);
             }
             case MULTI_FILE -> {
-                Flux<String> chatResult = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
-                yield processCodeStream(chatResult, codeGenTypeEnum, appId);
+                Flux<String> codeStream = aiCodeGeneratorService.generateMultiFileCodeStream(userMessage);
+                yield processCodeStream(codeStream, codeGenTypeEnum, appId);
             }
             case VUE_PROJECT -> {
-                Flux<String> chatResult = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processCodeStream(chatResult, CodeGenTypeEnum.MULTI_FILE, appId);
+                TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
+                yield processTokenStream(tokenStream);
             }
             default -> {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的生成类型" + codeGenTypeEnum.getValue());
@@ -121,6 +128,37 @@ public class AiCodeGeneratorFacade {
                         log.error("保存文件失败：{}", e.getMessage());
                     }
                 });
+    }
+
+    /**
+     * 将TokenStream流转换为Flux<String>流，并传递工具调用信息
+     *
+     * @param tokenStream 模型返回的TokenStream流
+     * @return 流式结果
+     */
+    private Flux<String> processTokenStream(TokenStream tokenStream) {
+        return Flux.create(sink -> {
+            tokenStream.onPartialResponse((String partialResponse) -> {
+                        AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
+                        sink.next(JSONUtil.toJsonStr(aiResponseMessage));
+                    })
+                    .onPartialToolExecutionRequest((index, toolExecutionRequest) -> {
+                        ToolRequestMessage toolRequestMessage = new ToolRequestMessage(toolExecutionRequest);
+                        sink.next(JSONUtil.toJsonStr(toolRequestMessage));
+                    })
+                    .onToolExecuted((ToolExecution toolExecution) -> {
+                        ToolExecutedMessage toolExecutedMessage = new ToolExecutedMessage(toolExecution);
+                        sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
+                    })
+                    .onCompleteResponse((ChatResponse chatResponse) -> {
+                        sink.complete();
+                    })
+                    .onError((Throwable error) -> {
+                        error.printStackTrace();
+                        sink.error(error);
+                    })
+                    .start();
+        });
     }
 
 

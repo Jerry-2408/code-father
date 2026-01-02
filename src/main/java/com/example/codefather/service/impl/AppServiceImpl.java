@@ -7,6 +7,7 @@ import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import com.example.codefather.constant.AppConstant;
 import com.example.codefather.core.AiCodeGeneratorFacade;
+import com.example.codefather.core.handler.StreamHandlerExecutor;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.exception.ThrowUtils;
@@ -55,6 +56,10 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     @Resource
     private ChatHistoryService chatHistoryService;
 
+    @Resource
+    private StreamHandlerExecutor streamHandlerExecutor;
+
+
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
@@ -74,30 +79,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 5. 添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         // 6. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
-        Flux<String> chatStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
-        // 7. 添加 AI 消息到对话历史
-        StringBuilder resultBuilder = new StringBuilder();
-        return chatStream
-                // map要返回流式结果，doOnNext不用返回流式结果
-                .map(chunk -> {
-                    // 收集AI响应内容
-                    resultBuilder.append(chunk);
-                    return chunk;
-                })
-                .doOnComplete(() -> {
-                    // 流式处理完成，保存AI消息到对话历史
-                    String completeResult = resultBuilder.toString();
-                    if (StrUtil.isNotBlank(completeResult)) {
-                        chatHistoryService.addChatMessage(appId, completeResult, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                    }
-                })
-                .doOnError(error -> {
-                    // 流式处理出错，保存出错消息到对话历史
-                    String errorMessage = "AI回复失败" + error.getMessage();
-                    if (StrUtil.isNotBlank(errorMessage)) {
-                        chatHistoryService.addChatMessage(appId, errorMessage, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                    }
-                });
+        Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
+        // 7. 处理调用 AI 生成代码后返回的流式响应并添加到对话历史
+        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenType);
     }
 
     @Override
