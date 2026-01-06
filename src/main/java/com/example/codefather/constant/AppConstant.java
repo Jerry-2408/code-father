@@ -27,4 +27,8 @@ public interface AppConstant {
      */
     String CODE_DEPLOY_HOST = "http://localhost";
 
+    /**
+     * 应用截图目录
+     */
+    String COVER_IMAGE_ROOT_DIR = System.getProperty("user.dir") + "/tmp/screenshots";
 }

@@ -60,3 +60,11 @@ langchain4j:
       max-tokens: 8192
       log-requests: true
       log-responses: true
+# COS对象存储配置
+cos:
+  client:
+    host: ${tencent.host}
+    secretId: ${tencent.secretId}
+    secretKey: ${tencent.secretKey}
+    region: ${tencent.region}
+    bucket: ${tencent.bucket}

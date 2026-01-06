@@ -102,15 +102,6 @@ public class AiCodeGeneratorServiceFactory {
     }
 
     /**
-     * 默认提供一个AI服务Bean，兼容之前的代码
-     * @return
-     */
-    @Bean
-    public AiCodeGeneratorService aiCodeGeneratorService() {
-        return getAiCodeGeneratorService(0L);
-    }
-
-    /**
      * 构建缓存键
      * @param appId
      * @param codeGenTypeEnum
@@ -120,4 +111,12 @@ public class AiCodeGeneratorServiceFactory {
         return appId + "_" + codeGenTypeEnum.getValue();
     }
 
+//    /**
+//     * 默认提供一个AI服务Bean，兼容之前的代码
+//     * @return
+//     */
+//    @Bean
+//    public AiCodeGeneratorService aiCodeGeneratorService() {
+//        return getAiCodeGeneratorService(0L);
+//    }
 }
