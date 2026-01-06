@@ -1,5 +1,6 @@
 package com.example.codefather.service;
 
+import com.example.codefather.model.dto.app.AppAddDTO;
 import com.example.codefather.model.dto.app.AppQueryDTO;
 import com.example.codefather.model.entity.User;
 import com.example.codefather.model.vo.app.AppVO;
@@ -62,5 +63,13 @@ public interface AppService extends IService<App> {
      * @return 应用视图对象列表
      */
     List<AppVO> getAppVOList(List<App> appList);
+
+    /**
+     * 创建应用
+     * @param appAddDTO 应用添加参数
+     * @param loginUser 登录用户
+     * @return 应用ID
+     */
+    Long createApp(AppAddDTO appAddDTO, User loginUser);
 
 }

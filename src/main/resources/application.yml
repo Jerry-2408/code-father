@@ -51,8 +51,8 @@ langchain4j:
       log-requests: true
       log-responses: true
       max-tokens: 8192
-      response-format: json_object
-      strict-json-schema: true
+#      response-format: json_object
+#      strict-json-schema: true
     streaming-chat-model:
       base-url: https://api.deepseek.com
       api-key: ${deepseek.api-key}

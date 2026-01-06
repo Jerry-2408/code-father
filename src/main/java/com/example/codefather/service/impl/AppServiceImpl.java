@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import com.example.codefather.ai.AiCodeGenTypeRoutingService;
 import com.example.codefather.constant.AppConstant;
 import com.example.codefather.core.AiCodeGeneratorFacade;
 import com.example.codefather.core.builder.VueProjectBuilder;
@@ -12,6 +13,7 @@ import com.example.codefather.core.handler.StreamHandlerExecutor;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.exception.ThrowUtils;
+import com.example.codefather.model.dto.app.AppAddDTO;
 import com.example.codefather.model.dto.app.AppQueryDTO;
 import com.example.codefather.model.entity.User;
 import com.example.codefather.model.enums.ChatHistoryMessageTypeEnum;
@@ -68,6 +70,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     @Resource
     private ScreenshotService screenshotService;
+
+    @Resource
+    private AiCodeGenTypeRoutingService aiCodeGenTypeRoutingService;
 
     @Override
     public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
@@ -250,6 +255,26 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
                     return appVO;
                 })
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Long createApp(AppAddDTO appAddDTO, User loginUser) {
+        // 参数校验
+        String initPrompt = appAddDTO.getInitPrompt();
+        ThrowUtils.throwIf(StrUtil.isBlank(initPrompt), ErrorCode.PARAMS_ERROR, "初始化 prompt 不能为空");
+        // 构造入库对象
+        App app = new App();
+        BeanUtil.copyProperties(appAddDTO, app);
+        app.setUserId(loginUser.getId());
+        // 应用名称暂时为 initPrompt 前 12 位
+        app.setAppName(initPrompt.substring(0, Math.min(initPrompt.length(), 12)));
+        // 使用AI智能选择代码生成类型
+        CodeGenTypeEnum codeGenTypeEnum = aiCodeGenTypeRoutingService.routeCodeGenType(initPrompt);
+        app.setCodeGenType(codeGenTypeEnum.getValue());
+        // 插入数据库
+        boolean result = this.save(app);
+        ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
+        return app.getId();
     }
 
 
