@@ -5,6 +5,8 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.example.codefather.ai.message.*;
+import com.example.codefather.ai.tools.BaseTool;
+import com.example.codefather.ai.tools.ToolManager;
 import com.example.codefather.constant.AppConstant;
 import com.example.codefather.core.builder.VueProjectBuilder;
 import com.example.codefather.model.entity.User;
@@ -30,6 +32,9 @@ public class JsonMessageStreamHandler {
 
     @Resource
     private VueProjectBuilder vueProjectBuilder;
+
+    @Resource
+    private ToolManager toolManager;
 
     /**
      * 处理TokenStream流封装的消息（VUE_PROJECT）
@@ -75,36 +80,42 @@ public class JsonMessageStreamHandler {
         StreamMessageTypeEnum typeEnum = StreamMessageTypeEnum.getEnumByValue(streamMessage.getType());
         switch (typeEnum) {
             case AI_RESPONSE -> {
+                // 获取TokenStream中封装的Json数据
                 AiResponseMessage aiResponseMessage = JSONUtil.toBean(chunk, AiResponseMessage.class);
+                // 解析数据
                 String data = aiResponseMessage.getData();
                 aiResponseBuilder.append(data);
                 return data;
             }
             case TOOL_REQUEST -> {
+                // 获取TokenStream中封装的Json数据
                 ToolRequestMessage toolRequestMessage = JSONUtil.toBean(chunk, ToolRequestMessage.class);
+                // 解析数据
                 String toolId = toolRequestMessage.getId();
+                String toolName = toolRequestMessage.getName();
                 // 检查是否第一次出现该工具ID
                 if (toolId != null && !seenToolIds.contains(toolId)) {
                     // 第一次出现
                     seenToolIds.add(toolId);
-                    return "\n\n[选择工具] 写入文件\n\n";
+                    // 根据工具名称获取工具实例
+                    BaseTool tool = toolManager.getTool(toolName);
+                    // 返回格式化的工具调用信息
+                    return tool.generateToolRequestResponse();
                 } else {
                     // 不是第一次出现
                     return "";
                 }
             }
             case TOOL_EXECUTED -> {
+                // 获取TokenStream中封装的Json数据
                 ToolExecutedMessage toolExecutedMessage = JSONUtil.toBean(chunk, ToolExecutedMessage.class);
+                // 解析数据
+                String toolName = toolExecutedMessage.getName();
                 JSONObject jsonObject = JSONUtil.parseObj(toolExecutedMessage.getArguments());
-                String relativeFilePath = jsonObject.getStr("relativeFilePath");
-                String suffix = FileUtil.getSuffix(relativeFilePath);
-                String content = jsonObject.getStr("content");
-                String result = String.format("""
-                        [工具调用]写入文件 %s
-                        ```%s
-                        %s
-                        ```
-                        """, relativeFilePath, suffix, content);
+                // 根据工具名称获取工具实例
+                BaseTool tool = toolManager.getTool(toolName);
+                // 返回格式化的工具执行信息，并加入信息到对话历史中
+                String result = tool.generateToolExecuteResult(jsonObject);
                 String output = String.format("\n\n%s\n\n", result);
                 aiResponseBuilder.append(output);
                 return output;

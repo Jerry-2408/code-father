@@ -1,6 +1,6 @@
 package com.example.codefather.ai;
 
-import com.example.codefather.ai.tools.FileWriteTool;
+import com.example.codefather.ai.tools.*;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
@@ -38,6 +38,9 @@ public class AiCodeGeneratorServiceFactory {
 
     @Resource
     private ChatHistoryService chatHistoryService;
+
+    @Resource
+    private ToolManager toolManager;
 
     private final Cache<String, AiCodeGeneratorService> serviceCache = Caffeine.newBuilder()
             .maximumSize(1000)
@@ -88,7 +91,7 @@ public class AiCodeGeneratorServiceFactory {
             case  VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(new FileWriteTool())
+                    .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest ->
                             ToolExecutionResultMessage.from(toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest.name()))
                     .build();
@@ -103,9 +106,9 @@ public class AiCodeGeneratorServiceFactory {
 
     /**
      * 构建缓存键
-     * @param appId
-     * @param codeGenTypeEnum
-     * @return
+     * @param appId 应用Id
+     * @param codeGenTypeEnum 代码生成类型枚举
+     * @return 缓存键
      */
     private String buildCacheKey(Long appId, CodeGenTypeEnum codeGenTypeEnum) {
         return appId + "_" + codeGenTypeEnum.getValue();
