@@ -2,7 +2,7 @@ package com.example.codefather.langgraph4j.node;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.StrUtil;
-import com.example.codefather.langgraph4j.state.ImageResource;
+import com.example.codefather.langgraph4j.model.ImageResource;
 import com.example.codefather.langgraph4j.state.WorkflowContext;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
@@ -44,6 +44,7 @@ public class PromptEnhancerNode {
                     enhancedPromptBuilder.append(imageListStr);
                 }
             }
+            enhancedPromptBuilder.append("\n ## 注意：\n\n 绝对不允许凭空制造图片地址，所用到的图片必须是可用素材资源里的\n");
             String enhancedPrompt = enhancedPromptBuilder.toString();
             // 更新状态
             context.setCurrentStep("提示词增强");

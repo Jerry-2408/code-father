@@ -1,5 +1,6 @@
-package com.example.codefather.langgraph4j.state;
+package com.example.codefather.langgraph4j.model;
 
+import com.example.codefather.langgraph4j.model.enums.ImageCategoryEnum;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

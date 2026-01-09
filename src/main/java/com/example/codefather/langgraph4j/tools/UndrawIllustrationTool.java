@@ -6,8 +6,8 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.example.codefather.langgraph4j.state.ImageCategoryEnum;
-import com.example.codefather.langgraph4j.state.ImageResource;
+import com.example.codefather.langgraph4j.model.enums.ImageCategoryEnum;
+import com.example.codefather.langgraph4j.model.ImageResource;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.extern.slf4j.Slf4j;
@@ -25,7 +25,7 @@ public class UndrawIllustrationTool {
     @Tool("搜索插画图片，用于网站美化和装饰")
     public List<ImageResource> searchIllustrations(@P("搜索关键词") String query) {
         List<ImageResource> imageList = new ArrayList<>();
-        int searchCount = 10;
+        int searchCount = 4;
         String apiUrl = String.format(UNDRAW_API_URL, query, query);
 
         // 使用 try-with-resources 自动释放 HTTP 资源

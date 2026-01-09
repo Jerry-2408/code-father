@@ -5,8 +5,8 @@ import cn.hutool.http.HttpResponse;
 import cn.hutool.json.JSONArray;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.example.codefather.langgraph4j.state.ImageCategoryEnum;
-import com.example.codefather.langgraph4j.state.ImageResource;
+import com.example.codefather.langgraph4j.model.enums.ImageCategoryEnum;
+import com.example.codefather.langgraph4j.model.ImageResource;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 import lombok.extern.slf4j.Slf4j;
@@ -28,7 +28,7 @@ public class ImageSearchTool {
     @Tool("搜索内容相关的图片，用于网站内容展示")
     public List<ImageResource> searchContentImages(@P("搜索关键词") String query) {
         List<ImageResource> imageList = new ArrayList<>();
-        int searchCount = 10;
+        int searchCount = 4;
         // 调用 API，注意释放资源
         try (HttpResponse response = HttpRequest.get(PEXELS_API_URL)
                 .header("Authorization", pexelsApiKey)

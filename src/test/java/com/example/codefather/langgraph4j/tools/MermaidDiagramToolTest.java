@@ -1,7 +1,7 @@
 package com.example.codefather.langgraph4j.tools;
 
-import com.example.codefather.langgraph4j.state.ImageCategoryEnum;
-import com.example.codefather.langgraph4j.state.ImageResource;
+import com.example.codefather.langgraph4j.model.enums.ImageCategoryEnum;
+import com.example.codefather.langgraph4j.model.ImageResource;
 import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

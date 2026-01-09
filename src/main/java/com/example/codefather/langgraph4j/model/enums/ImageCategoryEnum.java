@@ -1,4 +1,4 @@
-package com.example.codefather.langgraph4j.state;
+package com.example.codefather.langgraph4j.model.enums;
 
 import cn.hutool.core.util.ObjUtil;
 import lombok.Getter;
