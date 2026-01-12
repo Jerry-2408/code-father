@@ -3,6 +3,7 @@ package com.example.codefather.ai;
 import com.example.codefather.ai.tools.*;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
+import com.example.codefather.utils.SpringContextUtils;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
 import com.example.codefather.service.ChatHistoryService;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -10,12 +11,10 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
 import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import java.time.Duration;
@@ -23,15 +22,6 @@ import java.time.Duration;
 @Configuration
 @Slf4j
 public class AiCodeGeneratorServiceFactory {
-
-    @Resource
-    private ChatModel chatModel;
-
-    @Resource
-    private StreamingChatModel openAiStreamingChatModel;
-
-    @Resource
-    private StreamingChatModel reasoningStreamingChatModel;
 
     @Resource
     private RedisChatMemoryStore redisChatMemoryStore;
@@ -88,18 +78,24 @@ public class AiCodeGeneratorServiceFactory {
         // 构建AI服务
         return switch (codeGenTypeEnum) {
             // VUE项目生成使用推理模型+工具调用
-            case  VUE_PROJECT -> AiServices.builder(AiCodeGeneratorService.class)
+            case  VUE_PROJECT -> {
+                // TODO 换成真正的推理模型
+                StreamingChatModel reasoningStreamingChatModel = SpringContextUtils.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AiCodeGeneratorService.class)
                     .streamingChatModel(reasoningStreamingChatModel)
                     .chatMemoryProvider(memoryId -> chatMemory)
                     .tools(toolManager.getAllTools())
                     .hallucinatedToolNameStrategy(toolExecutionRequest ->
                             ToolExecutionResultMessage.from(toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest.name()))
                     .build();
-            case HTML, MULTI_FILE -> AiServices.builder(AiCodeGeneratorService.class)
-                            .chatModel(chatModel)
+            }
+            case HTML, MULTI_FILE -> {
+                StreamingChatModel openAiStreamingChatModel = SpringContextUtils.getBean("streamingChatModelPrototype", StreamingChatModel.class);
+                yield AiServices.builder(AiCodeGeneratorService.class)
                             .streamingChatModel(openAiStreamingChatModel)
                             .chatMemory(chatMemory)
                             .build();
+            }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型：" + codeGenTypeEnum.getValue());
         };
     }

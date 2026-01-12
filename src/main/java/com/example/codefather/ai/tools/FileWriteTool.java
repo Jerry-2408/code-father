@@ -72,6 +72,7 @@ public class FileWriteTool extends BaseTool {
                              [工具调用] %s %s
                              ```%s
                              %s
+                             ```
                              """, getDisplayName(), relativeFileName, suffix, content);
     }
 }

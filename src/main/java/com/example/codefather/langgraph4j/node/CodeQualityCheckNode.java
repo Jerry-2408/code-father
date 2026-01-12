@@ -5,7 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.example.codefather.langgraph4j.ai.CodeQualityCheckService;
 import com.example.codefather.langgraph4j.model.QualityResult;
 import com.example.codefather.langgraph4j.state.WorkflowContext;
-import com.example.codefather.langgraph4j.utils.SpringContextUtil;
+import com.example.codefather.utils.SpringContextUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
@@ -37,7 +37,7 @@ public class CodeQualityCheckNode {
                             .build();
                 } else {
                     // 2. 调用AI代码质量检查服务
-                    CodeQualityCheckService codeQualityCheckService = SpringContextUtil.getBean(CodeQualityCheckService.class);
+                    CodeQualityCheckService codeQualityCheckService = SpringContextUtils.getBean(CodeQualityCheckService.class);
                     qualityResult = codeQualityCheckService.checkCodeQuality(condeContent);
                     log.info("代码质量检查完成 - 是否通过: {}", qualityResult.getIsValid());
                 }

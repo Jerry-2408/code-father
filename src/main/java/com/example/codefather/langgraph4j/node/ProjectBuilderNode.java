@@ -4,7 +4,7 @@ import com.example.codefather.core.builder.VueProjectBuilder;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.langgraph4j.state.WorkflowContext;
-import com.example.codefather.langgraph4j.utils.SpringContextUtil;
+import com.example.codefather.utils.SpringContextUtils;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
@@ -27,7 +27,7 @@ public class ProjectBuilderNode {
             // Vue类型项目，使用VueProjectBuilder进行构建
             try {
                 // 获取VueProjectBuilder实例
-                VueProjectBuilder vueProjectBuilder = SpringContextUtil.getBean(VueProjectBuilder.class);
+                VueProjectBuilder vueProjectBuilder = SpringContextUtils.getBean(VueProjectBuilder.class);
                 // 构建Vue项目
                 boolean buildResult = vueProjectBuilder.buildProject(generatedCodeDir);
                 if (buildResult) {

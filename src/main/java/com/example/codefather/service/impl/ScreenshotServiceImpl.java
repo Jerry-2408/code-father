@@ -3,7 +3,7 @@ package com.example.codefather.service.impl;
 
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
-import com.example.codefather.common.WebScreenshotUtils;
+import com.example.codefather.utils.WebScreenshotUtils;
 import com.example.codefather.exception.ErrorCode;
 import com.example.codefather.exception.ThrowUtils;
 import com.example.codefather.manager.CosManager;

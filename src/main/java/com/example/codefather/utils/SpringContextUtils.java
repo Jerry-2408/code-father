@@ -1,4 +1,4 @@
-package com.example.codefather.langgraph4j.utils;
+package com.example.codefather.utils;
 
 import org.springframework.beans.BeansException;
 import org.springframework.context.ApplicationContext;
@@ -10,13 +10,13 @@ import org.springframework.stereotype.Component;
  * 用于在静态方法中获取Spring Bean
  */
 @Component
-public class SpringContextUtil implements ApplicationContextAware {
+public class SpringContextUtils implements ApplicationContextAware {
 
     private static ApplicationContext applicationContext;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        SpringContextUtil.applicationContext = applicationContext;
+        SpringContextUtils.applicationContext = applicationContext;
     }
 
     /**

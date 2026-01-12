@@ -1,4 +1,4 @@
-package com.example.codefather.common;
+package com.example.codefather.utils;
 
 import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.io.FileUtil;
@@ -8,7 +8,6 @@ import com.example.codefather.constant.AppConstant;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
 import io.github.bonigarcia.wdm.WebDriverManager;
-import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.OutputType;

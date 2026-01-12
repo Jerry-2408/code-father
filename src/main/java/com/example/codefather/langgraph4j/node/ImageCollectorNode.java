@@ -1,7 +1,6 @@
 package com.example.codefather.langgraph4j.node;
 
 import com.example.codefather.langgraph4j.ai.ImageCollectionPlanService;
-import com.example.codefather.langgraph4j.ai.ImageCollectionService;
 import com.example.codefather.langgraph4j.model.ImageCollectionPlan;
 import com.example.codefather.langgraph4j.model.ImageResource;
 import com.example.codefather.langgraph4j.state.WorkflowContext;
@@ -9,7 +8,7 @@ import com.example.codefather.langgraph4j.tools.ImageSearchTool;
 import com.example.codefather.langgraph4j.tools.LogoGeneratorTool;
 import com.example.codefather.langgraph4j.tools.MermaidDiagramTool;
 import com.example.codefather.langgraph4j.tools.UndrawIllustrationTool;
-import com.example.codefather.langgraph4j.utils.SpringContextUtil;
+import com.example.codefather.utils.SpringContextUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
 import org.bsc.langgraph4j.prebuilt.MessagesState;
@@ -35,14 +34,14 @@ public class ImageCollectorNode {
                 // 调用图片收集AI服务智能收集图片
 //                imageListStr = imageCollectionService.collectImages(originalPrompt);
                 // 1. 获取图片收集计划
-                ImageCollectionPlanService imageCollectionPlanService = SpringContextUtil.getBean(ImageCollectionPlanService.class);
+                ImageCollectionPlanService imageCollectionPlanService = SpringContextUtils.getBean(ImageCollectionPlanService.class);
                 ImageCollectionPlan plan = imageCollectionPlanService.planImageCollection(originalPrompt);
                 log.info("获取到图片收集计划，开始并发执行");
                 // 2. 并发执行各种图片收集任务
                 List<CompletableFuture<List<ImageResource>>> futures = new ArrayList<>();
                 // 并发搜索内容图片
                 if (plan.getContentImageTasks() != null) {
-                    ImageSearchTool imageSearchTool = SpringContextUtil.getBean(ImageSearchTool.class);
+                    ImageSearchTool imageSearchTool = SpringContextUtils.getBean(ImageSearchTool.class);
                     for (ImageCollectionPlan.ImageSearchTask task : plan.getContentImageTasks()) {
                         futures.add(CompletableFuture.supplyAsync(
                                 () -> imageSearchTool.searchContentImages(task.query())));
@@ -50,7 +49,7 @@ public class ImageCollectorNode {
                 }
                 // 并发搜索插画图片
                 if (plan.getIllustrationTasks() != null) {
-                    UndrawIllustrationTool undrawIllustrationTool = SpringContextUtil.getBean(UndrawIllustrationTool.class);
+                    UndrawIllustrationTool undrawIllustrationTool = SpringContextUtils.getBean(UndrawIllustrationTool.class);
                     for (ImageCollectionPlan.IllustrationTask task : plan.getIllustrationTasks()) {
                         futures.add(CompletableFuture.supplyAsync(
                                 () -> undrawIllustrationTool.searchIllustrations(task.query())));
@@ -58,7 +57,7 @@ public class ImageCollectorNode {
                 }
                 // 并发搜索架构图
                 if (plan.getDiagramTasks() != null) {
-                    MermaidDiagramTool diagramTool = SpringContextUtil.getBean(MermaidDiagramTool.class);
+                    MermaidDiagramTool diagramTool = SpringContextUtils.getBean(MermaidDiagramTool.class);
                     for (ImageCollectionPlan.DiagramTask task : plan.getDiagramTasks()) {
                         futures.add(CompletableFuture.supplyAsync(
                                 () -> diagramTool.generateMermaidDiagram(task.mermaidCode(), task.description())));
@@ -66,7 +65,7 @@ public class ImageCollectorNode {
                 }
                 // 并发搜索Logo图片
                 if (plan.getLogoTasks() != null) {
-                    LogoGeneratorTool logoTool = SpringContextUtil.getBean(LogoGeneratorTool.class);
+                    LogoGeneratorTool logoTool = SpringContextUtils.getBean(LogoGeneratorTool.class);
                     for (ImageCollectionPlan.LogoTask task : plan.getLogoTasks()) {
                         futures.add(CompletableFuture.supplyAsync(
                                 () -> logoTool.generateLogos(task.description())));

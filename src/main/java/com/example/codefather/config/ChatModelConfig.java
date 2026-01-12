@@ -1,7 +1,7 @@
 package com.example.codefather.config;
 
-import dev.langchain4j.model.chat.StreamingChatModel;
-import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.openai.OpenAiChatModel;
 import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -9,9 +9,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
 
 @Configuration
-@ConfigurationProperties(prefix = "langchain4j.open-ai.reasoning-streaming-chat-model")
+@ConfigurationProperties(prefix = "langchain4j.open-ai.chat-model")
 @Data
-public class ReasoningStreamingChatModelConfig {
+public class ChatModelConfig {
 
     private String baseUrl;
 
@@ -21,24 +21,20 @@ public class ReasoningStreamingChatModelConfig {
 
     private Integer maxTokens;
 
-    private Double temperature;
+    private boolean logRequests;
 
-    private Boolean logRequests = false;
-
-    private Boolean logResponses = false;
+    private boolean logResponses;
 
     @Bean
     @Scope("prototype")
-    public StreamingChatModel reasoningStreamingChatModelPrototype() {
-        return OpenAiStreamingChatModel.builder()
-                .baseUrl(baseUrl)
+    public ChatModel chatModelPrototype() {
+        return OpenAiChatModel.builder()
                 .apiKey(apiKey)
+                .baseUrl(baseUrl)
                 .modelName(modelName)
                 .maxTokens(maxTokens)
-                .temperature(temperature)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
                 .build();
     }
-
 }

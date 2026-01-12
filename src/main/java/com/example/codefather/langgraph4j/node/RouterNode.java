@@ -1,8 +1,9 @@
 package com.example.codefather.langgraph4j.node;
 
 import com.example.codefather.ai.AiCodeGenTypeRoutingService;
+import com.example.codefather.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.example.codefather.langgraph4j.state.WorkflowContext;
-import com.example.codefather.langgraph4j.utils.SpringContextUtil;
+import com.example.codefather.utils.SpringContextUtils;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.bsc.langgraph4j.action.AsyncNodeAction;
@@ -20,7 +21,8 @@ public class RouterNode {
             CodeGenTypeEnum codeGenType;
             try {
                 // 获取AI智能路由服务
-                AiCodeGenTypeRoutingService routingService = SpringContextUtil.getBean(AiCodeGenTypeRoutingService.class);
+                AiCodeGenTypeRoutingServiceFactory routingServiceFactory = SpringContextUtils.getBean(AiCodeGenTypeRoutingServiceFactory.class);
+                AiCodeGenTypeRoutingService routingService = routingServiceFactory.createAiCodeGenTypeRoutingService();
                 // 根据原始提示词进行智能路由
                 codeGenType = routingService.routeCodeGenType(context.getOriginalPrompt());
                 log.info("智能路由完成，选择类型: {}, {}", codeGenType.getText(), codeGenType.getValue());

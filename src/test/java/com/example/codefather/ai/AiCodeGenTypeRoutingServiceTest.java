@@ -27,4 +27,30 @@ class AiCodeGenTypeRoutingServiceTest {
         result = aiCodeGenTypeRoutingService.routeCodeGenType(userPrompt);
         log.info("用户需求: {} -> {}", userPrompt, result.getValue());
     }
+
+    @Resource
+    private AiCodeGenTypeRoutingServiceFactory routingServiceFactory;
+
+    @Test
+    void testConcurrentRoutingCalls() throws InterruptedException {
+        String[] prompts = {
+                "做一个简单的HTML页面",
+                "做一个多页面网站",
+                "做一个vue管理系统"
+        };
+        // 使用虚拟线程并发执行
+        Thread[] threads = new Thread[prompts.length];
+        for (int i = 0; i < prompts.length; i++) {
+            final String prompt = prompts[i];
+            final int index = i + 1;
+            threads[i] = Thread.ofVirtual().start(() -> {
+                AiCodeGenTypeRoutingService routingService = routingServiceFactory.createAiCodeGenTypeRoutingService();
+                CodeGenTypeEnum codeGenTypeEnum = routingService.routeCodeGenType(prompt);
+                log.info("线程: {}: {} -> {}", index, prompt, codeGenTypeEnum.getValue());
+            });
+        }
+        for (Thread thread : threads) {
+            thread.join();
+        }
+    }
 }
