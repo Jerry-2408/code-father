@@ -521,19 +521,27 @@ const generateCode = async (userMessage: string, aiMessageIndex: number) => {
       }
     }
 
-    // 处理done事件
+    // 处理done事件（AI 流式响应结束）
     eventSource.addEventListener('done', function () {
       if (streamCompleted) return
 
       streamCompleted = true
       isGenerating.value = false
-      eventSource?.close()
 
       // 延迟更新预览，确保后端已完成处理
       setTimeout(async () => {
         await fetchAppInfo()
         updatePreview()
       }, 1000)
+    })
+
+    // 处理构建完成事件（用于 VUE_PROJECT 模式，异步构建完成后刷新预览）
+    eventSource.addEventListener('buildDone', function () {
+      fetchAppInfo().then(() => {
+        updatePreview()
+        message.success('项目构建完成，预览已更新')
+        eventSource?.close()
+      })
     })
 
     // 处理business-error事件（后端限流等错误）

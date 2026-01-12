@@ -8,6 +8,8 @@ import com.example.codefather.ai.message.ToolExecutedMessage;
 import com.example.codefather.ai.message.ToolRequestMessage;
 import com.example.codefather.ai.model.HtmlCodeResult;
 import com.example.codefather.ai.model.MultiFileCodeResult;
+import com.example.codefather.constant.AppConstant;
+import com.example.codefather.core.builder.VueProjectBuilder;
 import com.example.codefather.core.parser.CodeParserExecutor;
 import com.example.codefather.core.saver.CodeFileSaverExecutor;
 import com.example.codefather.exception.BusinessException;
@@ -35,6 +37,9 @@ public class AiCodeGeneratorFacade {
 
     @Resource
     private AiCodeGeneratorServiceFactory aiCodeGeneratorServiceFactory;
+
+    @Resource
+    private VueProjectBuilder vueProjectBuilder;
 
 
     /**
@@ -91,7 +96,7 @@ public class AiCodeGeneratorFacade {
             }
             case VUE_PROJECT -> {
                 TokenStream tokenStream = aiCodeGeneratorService.generateVueProjectCodeStream(appId, userMessage);
-                yield processTokenStream(tokenStream);
+                yield processTokenStream(tokenStream, appId);
             }
             default -> {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的生成类型" + codeGenTypeEnum.getValue());
@@ -136,7 +141,7 @@ public class AiCodeGeneratorFacade {
      * @param tokenStream 模型返回的TokenStream流
      * @return 流式结果
      */
-    private Flux<String> processTokenStream(TokenStream tokenStream) {
+    private Flux<String> processTokenStream(TokenStream tokenStream, Long appId) {
         return Flux.create(sink -> {
             tokenStream.onPartialResponse((String partialResponse) -> {
                         AiResponseMessage aiResponseMessage = new AiResponseMessage(partialResponse);
@@ -151,7 +156,18 @@ public class AiCodeGeneratorFacade {
                         sink.next(JSONUtil.toJsonStr(toolExecutedMessage));
                     })
                     .onCompleteResponse((ChatResponse chatResponse) -> {
-                        sink.complete();
+                        // 异步构建Vue项目，构建完成后再通知前端
+                        String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
+                        vueProjectBuilder.buildProjectAsync(projectPath, buildSuccess -> {
+                            try {
+                                // 构建完成后，发送构建完成事件给前端
+                                sink.next("__BUILD_DONE__");
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            } finally {
+                                sink.complete();
+                            }
+                        });
                     })
                     .onError((Throwable error) -> {
                         error.printStackTrace();

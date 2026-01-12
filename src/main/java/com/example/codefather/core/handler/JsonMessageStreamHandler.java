@@ -1,14 +1,11 @@
 package com.example.codefather.core.handler;
 
-import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.example.codefather.ai.message.*;
 import com.example.codefather.ai.tools.BaseTool;
 import com.example.codefather.ai.tools.ToolManager;
-import com.example.codefather.constant.AppConstant;
-import com.example.codefather.core.builder.VueProjectBuilder;
 import com.example.codefather.model.entity.User;
 import com.example.codefather.model.enums.ChatHistoryMessageTypeEnum;
 import com.example.codefather.service.ChatHistoryService;
@@ -17,9 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
-import java.io.File;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 /**
@@ -29,9 +24,6 @@ import java.util.Set;
 @Slf4j
 @Component
 public class JsonMessageStreamHandler {
-
-    @Resource
-    private VueProjectBuilder vueProjectBuilder;
 
     @Resource
     private ToolManager toolManager;
@@ -52,6 +44,10 @@ public class JsonMessageStreamHandler {
         Set<String> seenToolIds = new HashSet<>();
         return originFlux
                 .map(chunk -> {
+                    // 特殊处理，异步构建Vue项目完成，通知前端
+                    if ("__BUILD_DONE__".equals(chunk)) {
+                        return "__BUILD_DONE__";
+                    }
                     // 解析每个JSON块
                     return handleJsonMessageChunk(chunk, aiResponseBuilder, seenToolIds);
                 })
@@ -60,9 +56,6 @@ public class JsonMessageStreamHandler {
                     // 流式响应完成后，添加AI消息到对话历史
                     String aiResponse = aiResponseBuilder.toString();
                     chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
-                    // 异步构建Vue项目
-                    String projectPath = AppConstant.CODE_OUTPUT_ROOT_DIR + File.separator + "vue_project_" + appId;
-                    vueProjectBuilder.buildProjectAsync(projectPath);
                 })
                 .doOnError(error -> {
                     // 如果AI回复失败，也要记录错误信息

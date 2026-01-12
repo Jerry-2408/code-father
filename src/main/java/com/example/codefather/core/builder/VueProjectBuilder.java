@@ -6,6 +6,7 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  *  Vue项目构建器
@@ -20,10 +21,24 @@ public class VueProjectBuilder {
      * @param projectPath 项目路径
      */
     public void buildProjectAsync(String projectPath) {
+        // 兼容旧方法，默认不传回调
+        buildProjectAsync(projectPath, null);
+    }
+
+    /**
+     * 异步构建项目（不阻塞主流程），支持回调
+     *
+     * @param projectPath 项目路径
+     * @param callback    构建完成回调，参数为是否构建成功
+     */
+    public void buildProjectAsync(String projectPath, Consumer<Boolean> callback) {
         // 在单独的线程中执行构建，避免阻塞主流程
         Thread.ofVirtual().name("vue-builder-" + System.currentTimeMillis()).start(() -> {
             try {
-                buildProject(projectPath);
+                boolean success = buildProject(projectPath);
+                if (callback != null) {
+                    callback.accept(success);
+                }
             } catch (Exception e) {
                 log.error("异步构建 Vue 项目时发生异常: {}", e.getMessage(), e);
             }

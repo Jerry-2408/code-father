@@ -75,6 +75,13 @@ public class AppController {
         // 调用服务生成代码文件
         return appService.chatToGenCode(appId, message, loginUser)
                 .map(chunk -> {
+                    // 特殊标记：构建完成事件，转为单独的 SSE 事件类型
+                    if ("__BUILD_DONE__".equals(chunk)) {
+                        return ServerSentEvent.<String>builder()
+                                .event("buildDone")
+                                .data("")
+                                .build();
+                    }
                     // 将内容打包成JSON对象
                     Map<String, String> wrapper = Map.of("d", chunk);
                     String jsonStr = JSONUtil.toJsonStr(wrapper);
