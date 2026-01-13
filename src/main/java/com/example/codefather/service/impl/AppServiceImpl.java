@@ -5,6 +5,7 @@ import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.example.codefather.ai.AiCodeGenTypeRoutingService;
 import com.example.codefather.ai.AiCodeGenTypeRoutingServiceFactory;
 import com.example.codefather.constant.AppConstant;
@@ -31,9 +32,11 @@ import com.example.codefather.mapper.AppMapper;
 import com.example.codefather.service.AppService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.io.Serializable;
@@ -76,7 +79,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private AiCodeGenTypeRoutingServiceFactory aiCodeGenTypeRoutingServiceFactory;
 
     @Override
-    public Flux<String> chatToGenCode(Long appId, String message, User loginUser) {
+    public Flux<ServerSentEvent<String>> chatToGenCode(Long appId, String message, User loginUser) {
         // 1. 参数校验
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(StrUtil.isBlank(message), ErrorCode.PARAMS_ERROR, "用户消息不能为空");
@@ -96,7 +99,41 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 6. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
         // 7. 处理调用 AI 生成代码后返回的流式响应并添加到对话历史
-        return streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenType);
+        codeStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenType);
+        return switch (codeGenType) {
+            case HTML, MULTI_FILE -> codeStream
+                    .map(chunk -> {
+                        // 将内容打包成JSON对象
+                        Map<String, String> wrapper = Map.of("d", chunk);
+                        String jsonStr = JSONUtil.toJsonStr(wrapper);
+                        return ServerSentEvent.<String>builder()
+                                .data(jsonStr)
+                                .build();
+                    })
+                    .concatWith(Mono.just(
+                            // 发送结束事件
+                            ServerSentEvent.<String>builder()
+                                    .data("")
+                                    .event("done")
+                                    .build()
+                    ));
+            case VUE_PROJECT -> codeStream
+                    .map(chunk -> {
+                        // 特殊标记：构建完成事件，转为单独的 SSE 事件类型
+                        if ("__BUILD_DONE__".equals(chunk)) {
+                            return ServerSentEvent.<String>builder()
+                                    .event("buildDone")
+                                    .data("")
+                                    .build();
+                        }
+                        // 将内容打包成JSON对象
+                        Map<String, String> wrapper = Map.of("d", chunk);
+                        String jsonStr = JSONUtil.toJsonStr(wrapper);
+                        return ServerSentEvent.<String>builder()
+                                .data(jsonStr)
+                                .build();
+                    });
+        };
     }
 
     @Override

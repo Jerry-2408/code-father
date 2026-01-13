@@ -73,29 +73,7 @@ public class AppController {
         // 获取当前用户
         User loginUser = userService.getLoginUser(request);
         // 调用服务生成代码文件
-        return appService.chatToGenCode(appId, message, loginUser)
-                .map(chunk -> {
-                    // 特殊标记：构建完成事件，转为单独的 SSE 事件类型
-                    if ("__BUILD_DONE__".equals(chunk)) {
-                        return ServerSentEvent.<String>builder()
-                                .event("buildDone")
-                                .data("")
-                                .build();
-                    }
-                    // 将内容打包成JSON对象
-                    Map<String, String> wrapper = Map.of("d", chunk);
-                    String jsonStr = JSONUtil.toJsonStr(wrapper);
-                    return ServerSentEvent.<String>builder()
-                            .data(jsonStr)
-                            .build();
-                })
-                .concatWith(Mono.just(
-                        // 发送结束事件
-                        ServerSentEvent.<String>builder()
-                                .data("")
-                                .event("done")
-                                .build()
-                ));
+        return appService.chatToGenCode(appId, message, loginUser);
     }
 
     /**
