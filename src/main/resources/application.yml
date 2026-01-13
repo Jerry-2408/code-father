@@ -52,7 +52,8 @@ langchain4j:
       log-requests: true
       log-responses: true
       max-tokens: 8192
-#      response-format: json_object
+      max-retries: 2
+    #      response-format: json_object
 #      strict-json-schema: true
     streaming-chat-model:
       base-url: https://api.deepseek.com
@@ -77,6 +78,7 @@ langchain4j:
       max-tokens: 8192
       log-requests: true
       log-responses: true
+      max-retries: 3
 # COS对象存储配置
 cos:
   client:

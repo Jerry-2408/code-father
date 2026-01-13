@@ -1,5 +1,7 @@
 package com.example.codefather.ai;
 
+import com.example.codefather.ai.guardrail.PromptSafetyInputGuardrail;
+import com.example.codefather.ai.guardrail.RetryOutputGuardrail;
 import com.example.codefather.ai.tools.*;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
@@ -82,18 +84,23 @@ public class AiCodeGeneratorServiceFactory {
                 // TODO 换成真正的推理模型
                 StreamingChatModel reasoningStreamingChatModel = SpringContextUtils.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
-                    .streamingChatModel(reasoningStreamingChatModel)
-                    .chatMemoryProvider(memoryId -> chatMemory)
-                    .tools(toolManager.getAllTools())
-                    .hallucinatedToolNameStrategy(toolExecutionRequest ->
-                            ToolExecutionResultMessage.from(toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest.name()))
-                    .build();
+                            .streamingChatModel(reasoningStreamingChatModel)
+                            .chatMemoryProvider(memoryId -> chatMemory)
+                            .tools(toolManager.getAllTools())
+                            .inputGuardrails(new PromptSafetyInputGuardrail())
+//                            .outputGuardrails(new RetryOutputGuardrail()) // 输出护轨会影响流式输出
+                            .maxSequentialToolsInvocations(25) // 允许最多连续调用25个工具
+                            .hallucinatedToolNameStrategy(toolExecutionRequest ->
+                                    ToolExecutionResultMessage.from(toolExecutionRequest, "Error: there is no tool called" + toolExecutionRequest.name()))
+                            .build();
             }
             case HTML, MULTI_FILE -> {
                 StreamingChatModel openAiStreamingChatModel = SpringContextUtils.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                             .streamingChatModel(openAiStreamingChatModel)
                             .chatMemory(chatMemory)
+                            .inputGuardrails(new PromptSafetyInputGuardrail())
+//                            .outputGuardrails(new RetryOutputGuardrail()) // 输出护轨会影响流式输出
                             .build();
             }
             default -> throw new BusinessException(ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型：" + codeGenTypeEnum.getValue());

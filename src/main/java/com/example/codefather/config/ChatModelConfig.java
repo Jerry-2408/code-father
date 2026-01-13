@@ -25,6 +25,8 @@ public class ChatModelConfig {
 
     private boolean logResponses;
 
+    private Integer maxRetries;
+
     @Bean
     @Scope("prototype")
     public ChatModel chatModelPrototype() {
@@ -35,6 +37,7 @@ public class ChatModelConfig {
                 .maxTokens(maxTokens)
                 .logRequests(logRequests)
                 .logResponses(logResponses)
+                .maxRetries(maxRetries)
                 .build();
     }
 }
