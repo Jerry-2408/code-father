@@ -2,8 +2,8 @@ package com.example.codefather.controller;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.json.JSONUtil;
 import com.example.codefather.annotation.AuthCheck;
+import com.example.codefather.annotation.RateLimit;
 import com.example.codefather.common.BaseResponse;
 import com.example.codefather.common.ResultUtils;
 import com.example.codefather.constant.AppConstant;
@@ -14,7 +14,7 @@ import com.example.codefather.exception.ThrowUtils;
 import com.example.codefather.model.dto.DeleteDTO;
 import com.example.codefather.model.dto.app.*;
 import com.example.codefather.model.entity.User;
-import com.example.codefather.model.enums.CodeGenTypeEnum;
+import com.example.codefather.model.enums.RateLimitType;
 import com.example.codefather.model.vo.app.AppVO;
 import com.example.codefather.service.ProjectDownloadService;
 import com.example.codefather.service.UserService;
@@ -30,12 +30,10 @@ import org.springframework.web.bind.annotation.*;
 import com.example.codefather.model.entity.App;
 import com.example.codefather.service.AppService;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 应用 控制层。
@@ -64,6 +62,7 @@ public class AppController {
      * @return 流式结果
      */
     @GetMapping(value = "/chat/gen/code", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    @RateLimit(limitType = RateLimitType.USER, rate = 5, rateInterval = 60, message = "AI对话请求过于频繁")
     public Flux<ServerSentEvent<String>> chatToGenCode(@RequestParam Long appId,
                                                        @RequestParam String message,
                                                        HttpServletRequest request) {
