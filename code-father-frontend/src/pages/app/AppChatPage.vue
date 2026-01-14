@@ -434,7 +434,7 @@ const sendMessage = async () => {
   let message = userInput.value.trim()
   // 如果有选中的元素，将元素信息添加到提示词中
   if (selectedElementInfo.value) {
-    let elementContext = `\n\n选中元素信息：`
+    let elementContext = `\n选中元素信息：`
     if (selectedElementInfo.value.pagePath) {
       elementContext += `\n- 页面路径: ${selectedElementInfo.value.pagePath}`
     }
@@ -442,7 +442,7 @@ const sendMessage = async () => {
     if (selectedElementInfo.value.textContent) {
       elementContext += `\n- 当前内容: ${selectedElementInfo.value.textContent.substring(0, 100)}`
     }
-    message += elementContext
+    message = `#请对以下选中元素进行修改#\n修改要求：` + message + `\n` + elementContext
   }
   userInput.value = ''
   // 添加用户消息（包含元素信息）
@@ -879,6 +879,7 @@ onUnmounted(() => {
 .user-message .message-content {
   background: #1890ff;
   color: white;
+  white-space: pre-wrap;
 }
 
 .ai-message .message-content {

@@ -22,14 +22,11 @@ import com.example.codefather.model.enums.ChatHistoryMessageTypeEnum;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
 import com.example.codefather.model.vo.app.AppVO;
 import com.example.codefather.model.vo.user.UserVO;
-import com.example.codefather.service.ChatHistoryService;
-import com.example.codefather.service.ScreenshotService;
-import com.example.codefather.service.UserService;
+import com.example.codefather.service.*;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.example.codefather.model.entity.App;
 import com.example.codefather.mapper.AppMapper;
-import com.example.codefather.service.AppService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.codec.ServerSentEvent;
@@ -67,6 +64,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
     private ChatHistoryService chatHistoryService;
 
     @Resource
+    private ChatHistoryOriginalService chatHistoryOriginalService;
+
+    @Resource
     private StreamHandlerExecutor streamHandlerExecutor;
 
     @Resource
@@ -96,10 +96,11 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         ThrowUtils.throwIf(codeGenType == null, ErrorCode.SYSTEM_ERROR, "不支持的代码生成类型");
         // 5. 添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
+        chatHistoryOriginalService.addOriginalChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         // 6. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
         // 7. 处理调用 AI 生成代码后返回的流式响应并添加到对话历史
-        codeStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, appId, loginUser, codeGenType);
+        codeStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, chatHistoryOriginalService, appId, loginUser, codeGenType);
         return switch (codeGenType) {
             case HTML, MULTI_FILE -> codeStream
                     .map(chunk -> {
@@ -226,6 +227,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
             return false;
         }
         chatHistoryService.deleteByAppId(appId);
+        chatHistoryOriginalService.deleteByAppId(appId);
         return super.removeById(id);
     }
 

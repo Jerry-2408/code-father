@@ -1,13 +1,12 @@
 package com.example.codefather.ai;
 
 import com.example.codefather.ai.guardrail.PromptSafetyInputGuardrail;
-import com.example.codefather.ai.guardrail.RetryOutputGuardrail;
 import com.example.codefather.ai.tools.*;
 import com.example.codefather.exception.BusinessException;
 import com.example.codefather.exception.ErrorCode;
+import com.example.codefather.service.ChatHistoryOriginalService;
 import com.example.codefather.utils.SpringContextUtils;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
-import com.example.codefather.service.ChatHistoryService;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.langchain4j.community.store.memory.chat.redis.RedisChatMemoryStore;
@@ -29,7 +28,7 @@ public class AiCodeGeneratorServiceFactory {
     private RedisChatMemoryStore redisChatMemoryStore;
 
     @Resource
-    private ChatHistoryService chatHistoryService;
+    private ChatHistoryOriginalService chatHistoryOriginalService;
 
     @Resource
     private ToolManager toolManager;
@@ -73,10 +72,10 @@ public class AiCodeGeneratorServiceFactory {
         MessageWindowChatMemory chatMemory = MessageWindowChatMemory.builder()
                 .id(appId)
                 .chatMemoryStore(redisChatMemoryStore)
-                .maxMessages(50)
+                .maxMessages(60)
                 .build();
         // 从数据库中加载历史对话到记忆窗口中
-        chatHistoryService.loadChatHistoryToMemory(appId, chatMemory, 20);
+        chatHistoryOriginalService.loadOriginalChatHistoryToMemory(appId, chatMemory, 50);
         // 构建AI服务
         return switch (codeGenTypeEnum) {
             // VUE项目生成使用推理模型+工具调用

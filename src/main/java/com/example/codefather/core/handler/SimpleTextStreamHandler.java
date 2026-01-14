@@ -1,10 +1,9 @@
 package com.example.codefather.core.handler;
 
 import cn.hutool.core.util.StrUtil;
-import com.example.codefather.core.parser.CodeParserExecutor;
-import com.example.codefather.core.saver.CodeFileSaverExecutor;
 import com.example.codefather.model.entity.User;
 import com.example.codefather.model.enums.ChatHistoryMessageTypeEnum;
+import com.example.codefather.service.ChatHistoryOriginalService;
 import com.example.codefather.service.ChatHistoryService;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
@@ -24,12 +23,14 @@ public class SimpleTextStreamHandler {
      *
      * @param originFlux 原始流
      * @param chatHistoryService 对话历史服务
+     * @param chatHistoryOriginalService 对话历史服务
      * @param appId 应用ID
      * @param loginUser 登录用户
      * @return 流式结果
      */
     public Flux<String> handle(Flux<String> originFlux,
                                ChatHistoryService chatHistoryService,
+                               ChatHistoryOriginalService chatHistoryOriginalService,
                                Long appId,
                                User loginUser) {
         StringBuilder aiResponseBuilder = new StringBuilder();
@@ -45,6 +46,7 @@ public class SimpleTextStreamHandler {
                     String aiResponse = aiResponseBuilder.toString();
                     if (StrUtil.isNotBlank(aiResponse)) {
                         chatHistoryService.addChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
+                        chatHistoryOriginalService.addOriginalChatMessage(appId, aiResponse, ChatHistoryMessageTypeEnum.AI.getValue(), loginUser.getId());
                     }
                 })
                 .doOnError(error -> {
