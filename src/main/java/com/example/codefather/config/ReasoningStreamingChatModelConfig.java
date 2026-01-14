@@ -23,9 +23,9 @@ public class ReasoningStreamingChatModelConfig {
 
     private Double temperature;
 
-    private Boolean logRequests = false;
+    private Boolean logRequests = true;
 
-    private Boolean logResponses = false;
+    private Boolean logResponses = true;
 
     @Bean
     @Scope("prototype")

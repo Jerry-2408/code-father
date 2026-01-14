@@ -98,7 +98,7 @@ public class AiCodeGeneratorServiceFactory {
                 StreamingChatModel openAiStreamingChatModel = SpringContextUtils.getBean("streamingChatModelPrototype", StreamingChatModel.class);
                 yield AiServices.builder(AiCodeGeneratorService.class)
                             .streamingChatModel(openAiStreamingChatModel)
-                            .chatMemory(chatMemory)
+                            .chatMemoryProvider(memoryId -> chatMemory)
                             .inputGuardrails(new PromptSafetyInputGuardrail())
 //                            .outputGuardrails(new RetryOutputGuardrail()) // 输出护轨会影响流式输出
                             .build();
