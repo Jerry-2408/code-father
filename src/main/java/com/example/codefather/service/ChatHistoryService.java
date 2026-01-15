@@ -9,6 +9,7 @@ import com.example.codefather.model.entity.ChatHistory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 对话历史 服务层。
@@ -43,6 +44,13 @@ public interface ChatHistoryService extends IService<ChatHistory> {
      * @return
      */
     boolean deleteByAppId(Long appId);
+
+    /**
+     * 批量删除应用下的所有对话消息记录
+     * @param appIds 应用id列表
+     * @return 删除结果
+     */
+    boolean deleteByAppIds(List<Long> appIds);
 
     /**
      * 获取应用下的对话消息记录

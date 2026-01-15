@@ -54,6 +54,14 @@ public interface ChatHistoryOriginalService extends IService<ChatHistoryOriginal
     boolean deleteByAppId(Long appId);
 
     /**
+     * 根据appIds批量删除对话历史
+     *
+     * @param appIds 应用Id列表
+     * @return 是否删除成功
+     */
+    boolean deleteByAppIds(List<Long> appIds);
+
+    /**
      * 根据appId加载原始对话历史到记忆窗口缓存中
      *
      * @param appId 应用Id

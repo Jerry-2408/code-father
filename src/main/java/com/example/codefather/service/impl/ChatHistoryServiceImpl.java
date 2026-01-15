@@ -104,6 +104,14 @@ public class ChatHistoryServiceImpl extends ServiceImpl<ChatHistoryMapper, ChatH
     }
 
     @Override
+    public boolean deleteByAppIds(List<Long> appIds) {
+        ThrowUtils.throwIf(appIds == null || appIds.isEmpty(), ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .in(ChatHistory::getAppId, appIds);
+        return this.remove(queryWrapper);
+    }
+
+    @Override
     public Page<ChatHistory> listAppChatHistoryByPage(Long appId, int pageSize, LocalDateTime lastCreateTime, User loginUser) {
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         ThrowUtils.throwIf(pageSize <= 0 || pageSize > 50, ErrorCode.PARAMS_ERROR, "页面大小必须在1-50之间");

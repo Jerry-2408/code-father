@@ -29,6 +29,7 @@ import com.example.codefather.model.entity.App;
 import com.example.codefather.mapper.AppMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,6 +55,7 @@ import java.util.stream.Collectors;
 @Service
 public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppService{
 
+    @Lazy
     @Resource
     private UserService userService;
 
@@ -213,7 +215,7 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
 
     /**
      * 删除应用时关联删除对话历史
-     * @param id
+     * @param id 应用 ID
      * @return
      */
     @Override
@@ -316,6 +318,29 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         boolean result = this.save(app);
         ThrowUtils.throwIf(!result, ErrorCode.OPERATION_ERROR);
         return app.getId();
+    }
+
+    @Override
+    @Transactional
+    public boolean removeByUserId(Long userId) {
+        // 参数校验
+        ThrowUtils.throwIf(userId <= 0, ErrorCode.PARAMS_ERROR, "用户不存在");
+        // 查询该用户下的所有应用
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .eq(App::getUserId, userId);
+        List<App> appList = this.list(queryWrapper);
+        List<Long> appIds = appList.stream().map(App::getId).collect(Collectors.toList());
+        // 删除所有应用的对话历史记录
+        boolean result = chatHistoryService.deleteByAppIds(appIds);
+        if (!result) {
+            log.error("删除应用对话历史记录失败，userId: {}", userId);
+        }
+        result = chatHistoryOriginalService.deleteByAppIds(appIds);
+        if (!result) {
+            log.error("删除应用原始对话历史记录失败，userId: {}", userId);
+        }
+        // 删除所有应用
+        return this.removeByIds(appIds);
     }
 
 

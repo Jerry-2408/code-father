@@ -10,14 +10,20 @@ import com.example.codefather.model.dto.user.UserQueryDTO;
 import com.example.codefather.model.enums.UserRoleEnum;
 import com.example.codefather.model.vo.user.UserLoginVO;
 import com.example.codefather.model.vo.user.UserVO;
+import com.example.codefather.service.AppService;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
 import com.example.codefather.model.entity.User;
 import com.example.codefather.mapper.UserMapper;
 import com.example.codefather.service.UserService;
+import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,9 +36,16 @@ import static com.example.codefather.constant.UserConstant.USER_LOGIN_STATE;
  * @author <a href="https://github.com/Jerry-2408">Jerry</a>
  * @since 2025-12-25
  */
+@Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements UserService{
 
+    @Resource
+    private final AppService appService;
+
+    public UserServiceImpl(AppService appService) {
+        this.appService = appService;
+    }
 
     @Override
     public long userRegister(String userAccount, String userPassword, String checkPassword) {
@@ -182,5 +195,49 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>  implements U
     public String getEncryptPassword(String userPassword) {
         final String SALT = "Habby";
         return DigestUtil.md5Hex(userPassword + SALT);
+    }
+
+    /**
+     * 删除用户（连带删除其应用）
+     * @param id 用户id
+     * @return 是否删除成功
+     */
+    @Override
+    @Transactional
+    public boolean removeById(Serializable id) {
+        boolean result = appService.removeByUserId((Long) id);
+        if (!result) {
+            log.error("用户关联的应用删除失败，userId: {}", id);
+            return false;
+        }
+        User user = User.builder()
+                .id((Long) id)
+                .build();
+        return super.removeById(user);
+    }
+
+    @Override
+    public boolean update(User user, HttpServletRequest request) {
+        User loginUser = this.getLoginUser(request);
+        // 只有管理员或者当前用户可以修改
+        if (UserRoleEnum.ADMIN.getValue().equals(loginUser.getUserRole()) || loginUser.getId().equals(user.getId())) {
+            // 密码部分
+            if (StrUtil.isNotEmpty(user.getUserPassword())) {
+                if (user.getUserPassword().length() < 8) {
+                    throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户密码过短");
+                }
+                // 密码加密
+                String encryptPassword = getEncryptPassword(user.getUserPassword());
+                user.setUserPassword(encryptPassword);
+            }
+            // 权限部分
+            if (StrUtil.isNotEmpty(user.getUserRole())) {
+                if (!UserRoleEnum.ADMIN.getValue().equals(loginUser.getUserRole())) {
+                    throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "无权限");
+                }
+            }
+            return super.updateById(user);
+        }
+        return false;
     }
 }

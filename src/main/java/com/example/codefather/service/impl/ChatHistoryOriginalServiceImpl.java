@@ -102,6 +102,14 @@ public class ChatHistoryOriginalServiceImpl extends ServiceImpl<ChatHistoryOrigi
     }
 
     @Override
+    public boolean deleteByAppIds(List<Long> appIds) {
+        ThrowUtils.throwIf(appIds == null || appIds.isEmpty(), ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
+        QueryWrapper queryWrapper = QueryWrapper.create()
+                .in(ChatHistoryOriginal::getAppId, appIds);
+        return this.remove(queryWrapper);
+    }
+
+    @Override
     public int loadOriginalChatHistoryToMemory(Long appId, MessageWindowChatMemory chatMemory, int maxCount) {
         try {
             // 1. 查找对话历史记录

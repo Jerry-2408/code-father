@@ -162,20 +162,20 @@ public class UserController {
     }
 
     /**
-     * 更新用户。（仅管理员）
+     * 更新用户。（更新权限仅管理员）
      *
      * @param updateDTO 更新请求
      * @return 是否更新成功
      */
     @PostMapping("/update")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateDTO updateDTO) {
+    public BaseResponse<Boolean> updateUser(@RequestBody UserUpdateDTO updateDTO,
+                                            HttpServletRequest request) {
         if (updateDTO == null || updateDTO.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         User user = new User();
         BeanUtil.copyProperties(updateDTO, user);
-        boolean b = userService.updateById(user);
+        boolean b = userService.update(user, request);
         ThrowUtils.throwIf(!b, ErrorCode.OPERATION_ERROR);
 
         return ResultUtils.success(true);

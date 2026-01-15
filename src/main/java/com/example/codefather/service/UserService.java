@@ -91,4 +91,12 @@ public interface UserService extends IService<User> {
      * @return 加密密码
      */
     String getEncryptPassword(String userPassword);
+
+    /**
+     * 修改用户信息
+     * @param user 修改的用户信息
+     * @param request 请求
+     * @return 是否修改成功
+     */
+    boolean update(User user, HttpServletRequest request);
 }

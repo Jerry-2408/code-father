@@ -73,4 +73,10 @@ public interface AppService extends IService<App> {
      */
     Long createApp(AppAddDTO appAddDTO, User loginUser);
 
+    /**
+     * 删除用户下的所有应用
+     * @param userId 用户ID
+     * @return 删除结果
+     */
+    boolean removeByUserId(Long userId);
 }
