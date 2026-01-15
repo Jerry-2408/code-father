@@ -131,7 +131,9 @@ public class JsonMessageStreamHandler {
                     // 根据工具名称获取工具实例
                     BaseTool tool = toolManager.getTool(toolName);
                     // 返回格式化的工具调用信息
-                    return tool.generateToolRequestResponse();
+                    String requstString = tool.generateToolRequestResponse();
+                    aiResponseBuilder.append(requstString);
+                    return requstString;
                 } else {
                     // 不是第一次出现
                     return "";

@@ -2,6 +2,7 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { ArrowUpOutlined } from '@ant-design/icons-vue'
 import { useLoginUserStore } from '@/stores/loginUser'
 import { addApp, listMyAppVoByPage, listGoodAppVoByPage } from '@/api/appController'
 import { getDeployUrl } from '@/config/env'
@@ -175,9 +176,9 @@ onMounted(() => {
           class="prompt-input"
         />
         <div class="input-actions">
-          <a-button type="primary" size="large" @click="createApp" :loading="creating">
+          <a-button type="default" shape="circle" size="large" @click="createApp" :loading="creating" class="send-button">
             <template #icon>
-              <span>↑</span>
+              <ArrowUpOutlined />
             </template>
           </a-button>
         </div>
@@ -481,6 +482,15 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+.send-button {
+  background: #8c8c8c !important;
+  border: none !important;
+}
+
+.send-button .anticon {
+  color: white !important;
 }
 
 /* 快捷按钮 */

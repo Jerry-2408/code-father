@@ -69,10 +69,11 @@ public class FileWriteTool extends BaseTool {
         String suffix = FileUtil.getSuffix(relativeFileName);
         String content = arguments.getStr("content");
         return String.format("""
-                             [工具调用] %s %s
+                             [调用结果] %s %s
                              ```%s
                              %s
                              ```
+                             [#调用结果]
                              """, getDisplayName(), relativeFileName, suffix, content);
     }
 }

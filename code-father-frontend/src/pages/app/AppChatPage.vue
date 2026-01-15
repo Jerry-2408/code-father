@@ -50,7 +50,9 @@
           </div>
           <div v-for="(message, index) in messages" :key="index" class="message-item">
             <div v-if="message.type === 'user'" class="user-message">
-              <div class="message-content">{{ message.content }}</div>
+              <div class="message-content">
+                <UserMessageContent :content="message.content" :index="index" />
+              </div>
               <div class="message-avatar">
                 <a-avatar :src="loginUserStore.loginUser.userAvatar" />
               </div>
@@ -226,6 +228,7 @@ import request from '@/request'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
 import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import UserMessageContent from '@/components/UserMessageContent.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
 import { VisualEditor, type ElementInfo } from '@/utils/visualEditor'
@@ -442,7 +445,7 @@ const sendMessage = async () => {
     if (selectedElementInfo.value.textContent) {
       elementContext += `\n- 当前内容: ${selectedElementInfo.value.textContent.substring(0, 100)}`
     }
-    message = `#请对以下选中元素进行修改#\n修改要求：` + message + `\n` + elementContext
+    message = `#请对以下选中元素进行修改，尽量只修改当前选中的元素#\n修改要求：` + message + `\n` + elementContext
   }
   userInput.value = ''
   // 添加用户消息（包含元素信息）
@@ -768,6 +771,7 @@ const getInputPlaceholder = () => {
   return '请描述你想生成的网站，越详细效果越好哦'
 }
 
+
 // 页面加载时获取应用信息
 onMounted(() => {
   fetchAppInfo()
@@ -877,8 +881,8 @@ onUnmounted(() => {
 }
 
 .user-message .message-content {
-  background: #1890ff;
-  color: white;
+  background: #e6f7e6;
+  color: #1a1a1a;
   white-space: pre-wrap;
 }
 
@@ -924,6 +928,16 @@ onUnmounted(() => {
   position: absolute;
   bottom: 8px;
   right: 8px;
+}
+
+.input-actions .ant-btn-primary {
+  background-color: #8c8c8c;
+  border-color: #8c8c8c;
+}
+
+.input-actions .ant-btn-primary:hover:not(:disabled) {
+  background-color: #737373;
+  border-color: #737373;
 }
 
 /* 右侧预览区域 */

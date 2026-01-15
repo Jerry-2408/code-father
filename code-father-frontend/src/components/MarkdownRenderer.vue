@@ -1,9 +1,9 @@
 <template>
-  <div class="markdown-content" v-html="renderedMarkdown"></div>
+  <div ref="markdownRef" class="markdown-content" v-html="renderedMarkdown"></div>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, nextTick, watch, ref } from 'vue'
 import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 
@@ -15,6 +15,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const markdownRef = ref<HTMLElement>()
+const previousContentLength = ref(0)
+const hasToolCallLoader = ref(false)
 
 // 配置 markdown-it 实例
 const md: MarkdownIt = new MarkdownIt({
@@ -38,10 +41,174 @@ const md: MarkdownIt = new MarkdownIt({
   },
 })
 
+// 处理调用结果的HTML
+const processCallResultHtml = (html: string): string => {
+  // 查找"[调用结果]"和"[#调用结果]"
+  const startMarker = '[调用结果]'
+  const endMarker = '[#调用结果]'
+  
+  // 使用正则表达式匹配，考虑HTML标签
+  const regex = new RegExp(
+    `(${startMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})([\\s\\S]*?)(${endMarker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`,
+    'g'
+  )
+  
+  return html.replace(regex, (match, start, content, end) => {
+    // 文档图标
+    const documentIcon = '<svg class="call-result-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M854.6 288.6L639.4 73.4c-6-6-14.1-9.4-22.6-9.4H192c-17.7 0-32 14.3-32 32v832c0 17.7 14.3 32 32 32h640c17.7 0 32-14.3 32-32V311.3c0-8.5-3.4-16.6-9.4-22.7zM602 137.8L790.2 326H602V137.8zM792 888H232V136h302v240c0 17.7 14.3 32 32 32h226v480z"/></svg>'
+    
+    // 包装整段内容，添加图标，隐藏结束标记
+    return `<div class="call-result-container"><span class="call-result-icon-wrapper">${documentIcon}</span>${start}${content}<span class="call-result-end-marker">${end}</span></div>`
+  })
+}
+
 // 计算渲染后的 Markdown
 const renderedMarkdown = computed(() => {
-  return md.render(props.content)
+  const html = md.render(props.content)
+  return processCallResultHtml(html)
 })
+
+// 处理包含工具调用关键词的行
+const processToolCallLines = () => {
+  nextTick(() => {
+    if (!markdownRef.value) return
+    
+    // 查找所有包含工具调用关键词的文本节点
+    const walker = document.createTreeWalker(
+      markdownRef.value,
+      NodeFilter.SHOW_TEXT,
+      null
+    )
+    
+    const textNodes: Node[] = []
+    let node: Node | null
+    while (node = walker.nextNode()) {
+      const text = node.textContent || ''
+      if (text.includes('[工具调用]') || text.includes('[选择工具]')) {
+        textNodes.push(node)
+      }
+    }
+    
+    // 处理每个文本节点
+    textNodes.forEach(textNode => {
+      const parent = textNode.parentElement
+      if (!parent) return
+      
+      // 跳过已经处理过的元素
+      if (parent.classList.contains('tool-call-container')) return
+      if (parent.closest('.tool-call-container')) return
+      
+      // 查找包含文本的块级父元素（p, li, div等）
+      let container: HTMLElement | null = parent
+      while (container && container !== markdownRef.value) {
+        const tagName = container.tagName
+        if (tagName && tagName.match(/^(P|LI|DIV|H[1-6])$/i)) {
+          break
+        }
+        container = container.parentElement
+      }
+      
+      if (!container || container === markdownRef.value) {
+        container = parent
+      }
+      
+      // 检查是否包含关键词
+      if (container.textContent && 
+          (container.textContent.includes('[工具调用]') || 
+           container.textContent.includes('[选择工具]'))) {
+        // 给容器添加类名（用于hover效果）
+        container.classList.add('tool-call-container')
+        
+        // 在关键词前添加图标（如果还没有添加）
+        const html = container.innerHTML
+        if (!html.includes('tool-call-icon')) {
+          const pencilIcon = '<svg class="tool-call-icon" viewBox="64 64 896 896" width="14" height="14" fill="currentColor"><path d="M880 836H144c-17.7 0-32 14.3-32 32v36c0 4.4 3.6 8 8 8h784c4.4 0 8-3.6 8-8v-36c0-17.7-14.3-32-32-32zm-622.3-84c2 0 4-.2 6-.5L431.9 722c2-.4 3.9-1.3 5.3-2.8l423.9-423.9a9.96 9.96 0 0 0 0-14.1L694.9 114.9c-1.9-1.9-4.4-2.9-7.1-2.9s-5.2 1-7.1 2.9L256.8 538.8c-1.5 1.5-2.4 3.3-2.8 5.3l-29.5 168.2a33.5 33.5 0 0 0 9.4 29.8c6.6 6.4 14.9 9.9 23.8 9.9z"/></svg>'
+          container.innerHTML = html.replace(
+            /(\[工具调用\])/g,
+            `<span class="tool-call-icon-wrapper">${pencilIcon}</span>$1`
+          )
+        }
+        
+        // 检查是否需要添加加载图标
+        updateToolCallLoader(container)
+      }
+    })
+  })
+}
+
+// 更新工具调用行的加载图标
+const updateToolCallLoader = (container: Element) => {
+  const existingLoader = container.querySelector('.tool-call-loader')
+  const hasToolCall = container.textContent?.includes('[工具调用]')
+  
+  // 检查该容器是否已经移除过加载图标（避免重复添加）
+  const loaderRemoved = container.classList.contains('tool-call-loader-removed')
+  
+  // 检查"[工具调用]"后面是否还有其他内容
+  // 如果该容器后面还有兄弟元素，或者该容器后面还有文本内容，说明下一个消息流已经到来
+  const hasNextContent = checkHasNextContent(container)
+  
+  if (hasToolCall && !existingLoader && !loaderRemoved && !hasNextContent) {
+    // 如果包含"[工具调用]"且没有加载图标，且没有移除过，且后面没有新内容，添加加载图标
+    const loader = document.createElement('span')
+    loader.className = 'tool-call-loader'
+    loader.innerHTML = '<span class="tool-call-spinner"></span>'
+    container.appendChild(loader)
+    hasToolCallLoader.value = true
+  }
+}
+
+// 检查容器后面是否还有其他内容
+const checkHasNextContent = (container: Element): boolean => {
+  if (!markdownRef.value) return false
+  
+  // 检查该容器后面是否还有兄弟元素
+  let nextSibling = container.nextElementSibling
+  while (nextSibling) {
+    const siblingText = nextSibling.textContent || ''
+    if (siblingText.trim().length > 0) {
+      return true
+    }
+    nextSibling = nextSibling.nextElementSibling
+  }
+  
+  return false
+}
+
+// 处理包含调用结果的内容（DOM处理，用于动态更新）
+const processCallResult = () => {
+  // 已经在HTML字符串层面处理了，这里不需要额外处理
+  // 保留函数以保持接口一致性
+}
+
+// 监听内容变化
+watch(() => props.content, (newContent, oldContent) => {
+  const contentLength = newContent.length
+  const oldLength = oldContent?.length || 0
+  
+  processToolCallLines()
+  processCallResult()
+  
+  // 如果内容长度增加，说明有新消息流到来，移除所有加载图标并标记
+  if (contentLength > oldLength && hasToolCallLoader.value) {
+    nextTick(() => {
+      if (markdownRef.value) {
+        const containers = markdownRef.value.querySelectorAll('.tool-call-container')
+        containers.forEach(container => {
+          const loader = container.querySelector('.tool-call-loader')
+          if (loader) {
+            loader.remove()
+            // 标记该容器已经移除过加载图标，避免再次添加
+            container.classList.add('tool-call-loader-removed')
+          }
+        })
+        hasToolCallLoader.value = false
+      }
+    })
+  }
+  
+  previousContentLength.value = contentLength
+}, { immediate: true })
 </script>
 
 <style scoped>
@@ -213,5 +380,86 @@ const renderedMarkdown = computed(() => {
 .markdown-content :deep(.hljs-title) {
   color: #6f42c1;
   font-weight: 600;
+}
+
+/* 工具调用行样式 */
+.markdown-content :deep(.tool-call-container) {
+  padding: 4px 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  transition: box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.markdown-content :deep(.tool-call-container:hover) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.markdown-content :deep(.tool-call-icon-wrapper) {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  vertical-align: middle;
+  margin-top: -2px;
+}
+
+.markdown-content :deep(.tool-call-icon) {
+  display: inline-block;
+  color: #8c8c8c;
+  vertical-align: middle;
+}
+
+/* 工具调用加载图标样式 */
+.markdown-content :deep(.tool-call-loader) {
+  display: inline-block;
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+.markdown-content :deep(.tool-call-spinner) {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid #d9d9d9;
+  border-top-color: #1890ff;
+  border-radius: 50%;
+  animation: tool-call-spin 0.8s linear infinite;
+}
+
+@keyframes tool-call-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* 调用结果样式 */
+.markdown-content :deep(.call-result-container) {
+  padding: 4px 8px;
+  margin: 4px 0;
+  border-radius: 4px;
+  transition: box-shadow 0.2s ease;
+  cursor: pointer;
+}
+
+.markdown-content :deep(.call-result-container:hover) {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.markdown-content :deep(.call-result-icon-wrapper) {
+  display: inline-flex;
+  align-items: center;
+  margin-right: 4px;
+  vertical-align: middle;
+  margin-top: -2px;
+}
+
+.markdown-content :deep(.call-result-icon) {
+  display: inline-block;
+  color: #8c8c8c;
+  vertical-align: middle;
+}
+
+.markdown-content :deep(.call-result-end-marker) {
+  display: none;
 }
 </style>

@@ -22,7 +22,7 @@
     >
       <template #bodyCell="{ column, record }">
         <template v-if="column.dataIndex === 'userAvatar'">
-          <a-image :src="record.userAvatar" :width="120" />
+          <a-image :src="record.userAvatar" :width="70" :height="70" />
         </template>
         <template v-else-if="column.dataIndex === 'userRole'">
           <div v-if="record.userRole === 'admin'">

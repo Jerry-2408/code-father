@@ -74,7 +74,7 @@ public class FileModifyTool extends BaseTool {
         String oldContent = arguments.getStr("oldContent");
         String newContent = arguments.getStr("newContent");
         return String.format("""
-                [工具调用] %s %s
+                [调用结果] %s %s
                 
                 替换前：
                 ```
@@ -85,6 +85,7 @@ public class FileModifyTool extends BaseTool {
                 ```
                 %s
                 ```
+                [#调用结果]
                 """, getDisplayName(), relativeFileName, oldContent, newContent);
     }
 

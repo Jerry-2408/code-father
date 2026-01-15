@@ -86,6 +86,6 @@ public class FileDeleteTool extends BaseTool {
     @Override
     public String generateToolExecuteResult(JSONObject arguments) {
         String relativeFileName = arguments.getStr("relativeFileName");
-        return String.format("[工具调用] %s %s", getDisplayName(), relativeFileName);
+        return String.format("[调用结果] %s %s [#调用结果]\n", getDisplayName(), relativeFileName);
     }
 }
