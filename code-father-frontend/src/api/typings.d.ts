@@ -263,6 +263,7 @@ declare namespace API {
     userAvatar?: string
     userProfile?: string
     userRole?: string
+    userPassword?: string
   }
 
   type UserVO = {
@@ -274,4 +275,8 @@ declare namespace API {
     userRole?: string
     createTime?: string
   }
+
+  type uploadParams = {
+  file: string
+}
 }

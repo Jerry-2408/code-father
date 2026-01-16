@@ -3,6 +3,8 @@ import HomePage from '@/pages/HomePage.vue'
 import UserLoginPage from '@/pages/user/UserLoginPage.vue'
 import UserRegisterPage from '@/pages/user/UserRegisterPage.vue'
 import UserManagePage from '@/pages/admin/UserManagePage.vue'
+import UserEditPage from '@/pages/admin/UserEditPage.vue'
+import UserProfileEditPage from '@/pages/user/UserEditPage.vue'
 import AppManagePage from '@/pages/admin/AppManagePage.vue'
 import AppChatPage from '@/pages/app/AppChatPage.vue'
 import AppEditPage from '@/pages/app/AppEditPage.vue'
@@ -30,6 +32,16 @@ const router = createRouter({
       path: '/admin/userManage',
       name: '用户管理',
       component: UserManagePage,
+    },
+    {
+      path: '/admin/user/edit/:id',
+      name: '编辑用户',
+      component: UserEditPage,
+    },
+    {
+      path: '/user/edit',
+      name: '编辑个人信息',
+      component: UserProfileEditPage,
     },
     {
       path: '/admin/appManage',

@@ -36,7 +36,12 @@
           {{ dayjs(record.createTime).format('YYYY-MM-DD HH:mm:ss') }}
         </template>
         <template v-else-if="column.key === 'action'">
-          <a-button danger @click="doDelete(record.id)">删除</a-button>
+          <a-space>
+            <a-button type="primary" size="small" @click="doEdit(record)">
+              修改
+            </a-button>
+            <a-button danger size="small" @click="doDelete(record.id)">删除</a-button>
+          </a-space>
         </template>
       </template>
     </a-table>
@@ -44,9 +49,12 @@
 </template>
 <script lang="ts" setup>
 import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { deleteUser, listUserVoByPage } from '@/api/userController.ts'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
+
+const router = useRouter()
 
 const columns = [
   {
@@ -129,6 +137,14 @@ const doSearch = () => {
   // 重置页码
   searchParams.pageNum = 1
   fetchData()
+}
+
+// 跳转到编辑页面
+const doEdit = (record: API.UserVO) => {
+  if (!record || !record.id) {
+    return
+  }
+  router.push(`/admin/user/edit/${record.id}`)
 }
 
 // 删除数据

@@ -24,6 +24,28 @@
           </a-select-option>
         </a-select>
       </a-form-item>
+      <a-form-item label="是否精选">
+        <a-select
+          v-model:value="featuredFilter"
+          placeholder="选择是否精选"
+          style="width: 120px"
+        >
+          <a-select-option value="">全部</a-select-option>
+          <a-select-option value="yes">是</a-select-option>
+          <a-select-option value="no">否</a-select-option>
+        </a-select>
+      </a-form-item>
+      <a-form-item label="部署状态">
+        <a-select
+          v-model:value="deployedFilter"
+          placeholder="选择部署状态"
+          style="width: 120px"
+        >
+          <a-select-option value="">全部</a-select-option>
+          <a-select-option value="deployed">已部署</a-select-option>
+          <a-select-option value="notDeployed">未部署</a-select-option>
+        </a-select>
+      </a-form-item>
       <a-form-item>
         <a-button type="primary" html-type="submit">搜索</a-button>
       </a-form-item>
@@ -164,12 +186,31 @@ const searchParams = reactive<API.AppQueryRequest>({
   pageSize: 10,
 })
 
+const featuredFilter = ref<string>('')
+const deployedFilter = ref<string>('')
+
 // 获取数据
 const fetchData = async () => {
   try {
-    const res = await listAppVoByPageByAdmin({
+    const body: API.AppQueryRequest = {
       ...searchParams,
-    })
+    }
+    if (featuredFilter.value === 'yes') {
+      body.priority = 99
+    } else if (featuredFilter.value === 'no') {
+      body.priority = 0
+    } else {
+      body.priority = undefined
+    }
+    if (deployedFilter.value === 'deployed') {
+      body.deployKey = '1'
+    } else if (deployedFilter.value === 'notDeployed') {
+      body.deployKey = '0'
+    } else {
+      body.deployKey = undefined
+    }
+
+    const res = await listAppVoByPageByAdmin(body)
     if (res.data.data) {
       data.value = res.data.data.records ?? []
       total.value = res.data.data.totalRow ?? 0

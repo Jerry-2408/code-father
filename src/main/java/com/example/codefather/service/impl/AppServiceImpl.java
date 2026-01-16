@@ -265,15 +265,29 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         Long userId = appQueryDTO.getUserId();
         String sortField = appQueryDTO.getSortField();
         String sortOrder = appQueryDTO.getSortOrder();
-        return QueryWrapper.create()
+        QueryWrapper queryWrapper = QueryWrapper.create()
                 .eq(App::getId, id)
                 .like(App::getAppName, appName)
                 .like(App::getInitPrompt, initPrompt)
                 .eq(App::getCodeGenType, codeGenType)
-                .eq(App::getDeployKey, deployKey)
                 .eq(App::getPriority, priority)
                 .eq(App::getUserId, userId)
                 .orderBy(sortField, "ascend".equals(sortOrder));
+        if (appQueryDTO.getDeployKey() == null) {
+            return queryWrapper;
+        } else {
+            if ("0".equals(deployKey)) {
+                // 获取未部署的
+                queryWrapper.isNull(App::getDeployKey);
+            } else if ("1".equals(deployKey)) {
+                // 获取已部署的
+                queryWrapper.isNotNull(App::getDeployKey);
+            } else {
+                // 获取指定 deployKey 的
+                queryWrapper.eq(App::getDeployKey, deployKey);
+            }
+            return queryWrapper;
+        }
     }
 
     @Override
