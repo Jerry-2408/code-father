@@ -29,6 +29,7 @@ import com.example.codefather.model.entity.App;
 import com.example.codefather.mapper.AppMapper;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Service;
@@ -139,6 +140,9 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         };
     }
 
+    @Value("${code.deploy-host}")
+    private String deployHost;
+
     @Override
     public String deployApp(Long appId, User loginUser) {
         // 1. 参数校验
@@ -192,7 +196,8 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         updateApp.setDeployedTime(LocalDateTime.now());
         boolean updateResult = this.updateById(updateApp);
         // 10. 构建部署的URL（域名/deployKey）
-        String appDeployUrl = String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
+//        String appDeployUrl = String.format("%s/%s", AppConstant.CODE_DEPLOY_HOST, deployKey);
+        String appDeployUrl = String.format("%s/%s", deployHost, deployKey);
         // 11. 异步生成截图并更新应用封面
         generateAppScreenshotAsync(appId, appDeployUrl);
         return appDeployUrl;

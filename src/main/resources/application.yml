@@ -94,3 +94,6 @@ pexels:
 dashscope:
   api-key: ${dashscope.api-key}
   image-model: wan2.2-t2i-flash
+# 部署路径
+code:
+  deploy-host: http://localhost

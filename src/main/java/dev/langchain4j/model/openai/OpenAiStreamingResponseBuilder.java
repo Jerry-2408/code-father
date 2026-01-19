@@ -94,7 +94,7 @@ public class OpenAiStreamingResponseBuilder {
 
         String content = delta.content();
         if (!isNullOrEmpty(content)) {
-            System.out.println("OLOLO " + delta.content()); // TODO
+//            System.out.println("OLOLO " + delta.content()); // TODO
             this.contentBuilder.append(content);
         }
 
@@ -111,7 +111,7 @@ public class OpenAiStreamingResponseBuilder {
         }
 
         if (delta.toolCalls() != null) {
-            System.out.println("OLOLO " + delta.toolCalls()); // TODO
+//            System.out.println("OLOLO " + delta.toolCalls()); // TODO
 
             for (ToolCall toolCall : delta.toolCalls()) {
 
