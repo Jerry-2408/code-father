@@ -135,9 +135,11 @@ import type { FormInstance } from 'ant-design-vue'
 import { getUserVoById, updateUser } from '@/api/userController'
 import { formatTime } from '@/utils/time'
 import request from '@/request'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
 
 const route = useRoute()
 const router = useRouter()
+const loginUserStore = useLoginUserStore()
 
 const userInfo = ref<API.UserVO>()
 const loading = ref(false)
@@ -239,6 +241,9 @@ const handleSubmit = async () => {
 
     if (res.data.code === 0) {
       message.success('修改成功')
+      if (String(loginUserStore.loginUser?.id ?? '') === String(route.params.id ?? '')) {
+        await loginUserStore.fetchLoginUser()
+      }
       await fetchUserInfo()
     } else {
       message.error('修改失败：' + res.data.message)
@@ -297,6 +302,9 @@ const handleResetPasswordSubmit = async () => {
 
     if (res.data.code === 0) {
       message.success('密码重置成功')
+      if (String(loginUserStore.loginUser?.id ?? '') === String(route.params.id ?? '')) {
+        await loginUserStore.fetchLoginUser()
+      }
       resetPasswordVisible.value = false
     } else {
       message.error('密码重置失败：' + res.data.message)

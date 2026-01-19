@@ -78,8 +78,10 @@ import type { FormInstance } from 'ant-design-vue'
 import { getLoginUser, updateUser } from '@/api/userController'
 import { formatTime } from '@/utils/time'
 import request from '@/request'
+import { useLoginUserStore } from '@/stores/loginUser.ts'
 
 const router = useRouter()
+const loginUserStore = useLoginUserStore()
 
 const loginUser = ref<API.LoginUserVO>()
 const loading = ref(false)
@@ -156,9 +158,14 @@ const fetchUserInfo = async () => {
 }
 
 const handleSubmit = async () => {
+  if (!loginUser.value?.id) {
+    message.error('用户ID不存在')
+    return
+  }
   submitting.value = true
   try {
     const res = await updateUser({
+      id: (loginUser.value?.id != null ? String(loginUser.value?.id) : undefined) as any,
       userName: formData.userName,
       userAvatar: formData.userAvatar,
       userProfile: formData.userProfile,
@@ -166,6 +173,7 @@ const handleSubmit = async () => {
 
     if (res.data.code === 0) {
       message.success('修改成功')
+      await loginUserStore.fetchLoginUser()
       await fetchUserInfo()
     } else {
       message.error('修改失败：' + res.data.message)
@@ -219,6 +227,8 @@ const handleResetPasswordSubmit = async () => {
     if (res.data.code === 0) {
       message.success('密码重置成功')
       resetPasswordVisible.value = false
+      await loginUserStore.fetchLoginUser()
+      await fetchUserInfo()
     } else {
       message.error('密码重置失败：' + res.data.message)
     }
