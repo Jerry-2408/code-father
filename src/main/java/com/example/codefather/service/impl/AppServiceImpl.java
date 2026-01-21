@@ -22,6 +22,8 @@ import com.example.codefather.model.enums.ChatHistoryMessageTypeEnum;
 import com.example.codefather.model.enums.CodeGenTypeEnum;
 import com.example.codefather.model.vo.app.AppVO;
 import com.example.codefather.model.vo.user.UserVO;
+import com.example.codefather.monitor.MonitorContext;
+import com.example.codefather.monitor.MonitorContextHolder;
 import com.example.codefather.service.*;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.spring.service.impl.ServiceImpl;
@@ -100,10 +102,19 @@ public class AppServiceImpl extends ServiceImpl<AppMapper, App>  implements AppS
         // 5. 添加用户消息到对话历史
         chatHistoryService.addChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
         chatHistoryOriginalService.addOriginalChatMessage(appId, message, ChatHistoryMessageTypeEnum.USER.getValue(), loginUser.getId());
-        // 6. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
+        // 6. 添加AI监控上下文
+        MonitorContext monitorContext = MonitorContext.builder()
+                .appId(appId.toString())
+                .userId(loginUser.getId().toString())
+                .build();
+        MonitorContextHolder.setContext(monitorContext);
+        // 7. 调用 AI 生成代码，使用方法参数的message而不是app中的Init Prompt，方便后续复用该接口
         Flux<String> codeStream = aiCodeGeneratorFacade.generateAndSaveCodeStream(message, codeGenType, appId);
-        // 7. 处理调用 AI 生成代码后返回的流式响应并添加到对话历史
+        // 8. 流结束时清除AI监控上下文
+        codeStream = codeStream.doFinally(signalType -> MonitorContextHolder.clearContext());
+        // 9. 处理调用 AI 生成代码后返回的流式响应并添加到对话历史
         codeStream = streamHandlerExecutor.doExecute(codeStream, chatHistoryService, chatHistoryOriginalService, appId, loginUser, codeGenType);
+        // 10. 构建特殊事件，得到SSE流
         return switch (codeGenType) {
             case HTML, MULTI_FILE -> codeStream
                     .map(chunk -> {
