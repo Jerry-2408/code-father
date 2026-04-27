@@ -27,7 +27,7 @@
           </template>
           下载代码
         </a-button>
-        <a-button type="primary" @click="deployApp" :loading="deploying">
+        <a-button type="primary" @click="openDeployModal">
           <template #icon>
             <CloudUploadOutlined />
           </template>
@@ -203,9 +203,12 @@
     />
 
     <!-- 部署成功弹窗 -->
-    <DeploySuccessModal
+    <DeployModal
         v-model:open="deployModalVisible"
-        :deploy-url="deployUrl"
+        :task="deployTask"
+        :starting-deploy="startingDeploy"
+        :start-button-disabled="startDeployButtonDisabled"
+        @start-deploy="startDeployTask"
         @open-site="openDeployedSite"
     />
   </div>
@@ -219,6 +222,7 @@ import { useLoginUserStore } from '@/stores/loginUser'
 import {
   getAppVoById,
   deployApp as deployAppApi,
+  getDeployTaskStatus as getDeployTaskStatusApi,
   deleteApp as deleteAppApi,
 } from '@/api/appController'
 import { listAppChatHistory } from '@/api/chatHistoryController'
@@ -227,7 +231,7 @@ import request from '@/request'
 
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import AppDetailModal from '@/components/AppDetailModal.vue'
-import DeploySuccessModal from '@/components/DeploySuccessModal.vue'
+import DeployModal from '@/components/DeployModal.vue'
 import UserMessageContent from '@/components/UserMessageContent.vue'
 import aiAvatar from '@/assets/aiAvatar.png'
 import { API_BASE_URL, getStaticPreviewUrl } from '@/config/env'
@@ -274,9 +278,11 @@ const previewUrl = ref('')
 const previewReady = ref(false)
 
 // 部署相关
-const deploying = ref(false)
+const startingDeploy = ref(false)
 const deployModalVisible = ref(false)
-const deployUrl = ref('')
+const deployTask = ref<API.AppDeployTaskVO>()
+const deployPollingTimer = ref<number>()
+const deployFinishedNoticeShown = ref(false)
 
 // 下载相关
 const downloading = ref(false)
@@ -297,6 +303,15 @@ const isOwner = computed(() => {
 
 const isAdmin = computed(() => {
   return loginUserStore.loginUser.userRole === 'admin'
+})
+
+const deployTaskRunning = computed(() => {
+  const status = deployTask.value?.status
+  return status === 'PENDING' || status === 'DEPLOYING' || status === 'SCREENSHOTTING'
+})
+
+const startDeployButtonDisabled = computed(() => {
+  return startingDeploy.value || deployTaskRunning.value
 })
 
 // 应用详情相关
@@ -664,23 +679,30 @@ const downloadCode = async () => {
   }
 }
 
-// 部署应用
-const deployApp = async () => {
+// 打开部署弹窗
+const openDeployModal = () => {
+  deployModalVisible.value = true
+}
+
+// 发起部署任务
+const startDeployTask = async () => {
   if (!appId.value) {
     message.error('应用ID不存在')
     return
   }
-
-  deploying.value = true
+  if (deployTaskRunning.value || startingDeploy.value) {
+    return
+  }
+  startingDeploy.value = true
+  deployFinishedNoticeShown.value = false
   try {
     const res = await deployAppApi({
       appId: appId.value as unknown as number,
     })
 
     if (res.data.code === 0 && res.data.data) {
-      deployUrl.value = res.data.data
-      deployModalVisible.value = true
-      message.success('部署成功')
+      deployTask.value = res.data.data
+      startDeployPolling()
     } else {
       message.error('部署失败：' + res.data.message)
     }
@@ -688,7 +710,52 @@ const deployApp = async () => {
     console.error('部署失败：', error)
     message.error('部署失败，请重试')
   } finally {
-    deploying.value = false
+    startingDeploy.value = false
+  }
+}
+
+// 轮询部署任务状态
+const startDeployPolling = () => {
+  const taskId = deployTask.value?.taskId
+  if (!taskId) {
+    return
+  }
+  stopDeployPolling()
+  void pollDeployTaskStatus(taskId)
+  deployPollingTimer.value = window.setInterval(() => {
+    void pollDeployTaskStatus(taskId)
+  }, 2000)
+}
+
+const stopDeployPolling = () => {
+  if (deployPollingTimer.value) {
+    window.clearInterval(deployPollingTimer.value)
+    deployPollingTimer.value = undefined
+  }
+}
+
+const pollDeployTaskStatus = async (taskId: number) => {
+  try {
+    const res = await getDeployTaskStatusApi({ taskId })
+    if (res.data.code !== 0 || !res.data.data) {
+      return
+    }
+    deployTask.value = res.data.data
+    const status = res.data.data.status
+    if (status === 'SUCCESS' || status === 'FAILED') {
+      stopDeployPolling()
+      if (!deployFinishedNoticeShown.value) {
+        deployFinishedNoticeShown.value = true
+        if (status === 'SUCCESS') {
+          message.success('部署成功')
+          await fetchAppInfo()
+        } else {
+          message.error(res.data.data.errorMessage || '部署失败，请稍后重试')
+        }
+      }
+    }
+  } catch (error) {
+    console.error('查询部署任务状态失败：', error)
   }
 }
 
@@ -701,8 +768,8 @@ const openInNewTab = () => {
 
 // 打开部署的网站
 const openDeployedSite = () => {
-  if (deployUrl.value) {
-    window.open(deployUrl.value, '_blank')
+  if (deployTask.value?.deployUrl) {
+    window.open(deployTask.value.deployUrl, '_blank')
   }
 }
 
@@ -784,7 +851,7 @@ onMounted(() => {
 
 // 清理资源
 onUnmounted(() => {
-  // EventSource 会在组件卸载时自动清理
+  stopDeployPolling()
 })
 </script>
 

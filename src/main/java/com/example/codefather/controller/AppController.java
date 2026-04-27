@@ -15,6 +15,7 @@ import com.example.codefather.model.dto.DeleteDTO;
 import com.example.codefather.model.dto.app.*;
 import com.example.codefather.model.entity.User;
 import com.example.codefather.model.enums.RateLimitType;
+import com.example.codefather.model.vo.app.AppDeployTaskVO;
 import com.example.codefather.model.vo.app.AppVO;
 import com.example.codefather.service.ProjectDownloadService;
 import com.example.codefather.service.UserService;
@@ -83,15 +84,29 @@ public class AppController {
      * @return 部署结果
      */
     @PostMapping("/deploy")
-    public BaseResponse<String> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
+    public BaseResponse<AppDeployTaskVO> deployApp(@RequestBody AppDeployRequest appDeployRequest, HttpServletRequest request) {
         ThrowUtils.throwIf(appDeployRequest == null, ErrorCode.PARAMS_ERROR);
         Long appId = appDeployRequest.getAppId();
         ThrowUtils.throwIf(appId == null || appId <= 0, ErrorCode.PARAMS_ERROR, "应用 ID 不能为空");
         // 获取当前登录用户
         User loginUser = userService.getLoginUser(request);
         // 调用服务部署应用
-        String deployUrl = appService.deployApp(appId, loginUser);
-        return ResultUtils.success(deployUrl);
+        AppDeployTaskVO taskVO = appService.deployApp(appId, loginUser);
+        return ResultUtils.success(taskVO);
+    }
+
+    /**
+     * 查询部署任务状态
+     *
+     * @param taskId 任务 ID
+     * @param request 请求
+     * @return 任务状态
+     */
+    @GetMapping("/deploy/task/{taskId}")
+    public BaseResponse<AppDeployTaskVO> getDeployTaskStatus(@PathVariable Long taskId, HttpServletRequest request) {
+        ThrowUtils.throwIf(taskId == null || taskId <= 0, ErrorCode.PARAMS_ERROR, "任务 ID 不能为空");
+        User loginUser = userService.getLoginUser(request);
+        return ResultUtils.success(appService.getDeployTaskStatus(taskId, loginUser));
     }
 
     /**

@@ -3,6 +3,7 @@ package com.example.codefather.service;
 import com.example.codefather.model.dto.app.AppAddDTO;
 import com.example.codefather.model.dto.app.AppQueryDTO;
 import com.example.codefather.model.entity.User;
+import com.example.codefather.model.vo.app.AppDeployTaskVO;
 import com.example.codefather.model.vo.app.AppVO;
 import com.mybatisflex.core.query.QueryWrapper;
 import com.mybatisflex.core.service.IService;
@@ -34,16 +35,17 @@ public interface AppService extends IService<App> {
      * 部署应用
      * @param appId 应用ID
      * @param loginUser 登录用户
-     * @return 部署路径
+     * @return 部署任务
      */
-    public String deployApp(Long appId, User loginUser);
+    AppDeployTaskVO deployApp(Long appId, User loginUser);
 
     /**
-     * 异步生成应用截图
-     * @param appId 应用ID
-     * @param appUrl 应用URL
+     * 查询部署任务状态
+     * @param taskId 任务ID
+     * @param loginUser 登录用户
+     * @return 部署任务
      */
-    void generateAppScreenshotAsync(Long appId, String appUrl);
+    AppDeployTaskVO getDeployTaskStatus(Long taskId, User loginUser);
 
     /**
      * 获取应用视图对象

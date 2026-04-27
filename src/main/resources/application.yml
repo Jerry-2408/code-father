@@ -8,7 +8,7 @@ spring:
     username: root
     password: 123456
   profiles:
-    active: local
+    active: prod
   # redis
   data:
     redis:
@@ -17,6 +17,16 @@ spring:
       password:
       ttl: 3600
       database: 0
+  # rabbitmq
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    listener:
+      simple:
+        acknowledge-mode: auto
+        default-requeue-rejected: false
   # spring-session
   session:
     store-type: redis
@@ -66,7 +76,7 @@ langchain4j:
     reasoning-streaming-chat-model:
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ${qwen.api-key}
-      model-name: qwen-flash
+      model-name: qwen3.6-max-preview
       max-tokens: 32768
       log-requests: true
       log-responses: true
@@ -74,7 +84,7 @@ langchain4j:
     routing-chat-model:
       base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
       api-key: ${qwen.api-key}
-      model-name: qwen-turbo
+      model-name: qwen3.5-plus
       max-tokens: 100
       log-requests: true
       log-responses: true

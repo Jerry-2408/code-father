@@ -14,6 +14,16 @@ declare namespace API {
     appId?: number
   }
 
+  type AppDeployTaskVO = {
+    taskId?: number
+    appId?: number
+    deployKey?: string
+    deployUrl?: string
+    status?: string
+    retryCount?: number
+    errorMessage?: string
+  }
+
   type AppQueryRequest = {
     pageNum?: number
     pageSize?: number
@@ -52,6 +62,12 @@ declare namespace API {
   type BaseResponseAppVO = {
     code?: number
     data?: AppVO
+    message?: string
+  }
+
+  type BaseResponseAppDeployTaskVO = {
+    code?: number
+    data?: AppDeployTaskVO
     message?: string
   }
 
@@ -152,6 +168,10 @@ declare namespace API {
 
   type getAppVOByIdParams = {
     id: number
+  }
+
+  type getDeployTaskStatusParams = {
+    taskId: number
   }
 
   type getUserByIdParams = {
